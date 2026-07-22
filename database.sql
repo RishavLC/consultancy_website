@@ -1,0 +1,45 @@
+CREATE DATABASE IF NOT EXISTS civil_consultancy;
+USE civil_consultancy;
+
+CREATE TABLE admin(
+id INT AUTO_INCREMENT PRIMARY KEY,
+username VARCHAR(100) NOT NULL,
+password VARCHAR(255) NOT NULL,
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE banners(
+id INT AUTO_INCREMENT PRIMARY KEY,
+title VARCHAR(200),
+subtitle TEXT,
+image VARCHAR(255),
+status ENUM('active','inactive') DEFAULT 'active'
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE work_logs(
+id INT AUTO_INCREMENT PRIMARY KEY,
+title VARCHAR(200),
+description TEXT,
+image VARCHAR(255),
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE gallery(
+id INT AUTO_INCREMENT PRIMARY KEY,
+title VARCHAR(150),
+image VARCHAR(255),
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE contact_messages(
+id INT AUTO_INCREMENT PRIMARY KEY,
+name VARCHAR(100),
+email VARCHAR(100),
+phone VARCHAR(30),
+message TEXT,
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+username - admin
+password - admin123
