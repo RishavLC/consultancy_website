@@ -43,3 +43,4 @@ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
 username - admin
 password - admin123
+-- to do: add more tables for services, projects, and testimonials
