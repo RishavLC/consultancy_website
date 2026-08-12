@@ -1,173 +1,140 @@
 <?php
-require_once __DIR__ . '/includes/db.php';
-require_once __DIR__ . '/includes/functions.php';
-$pageTitle = 'Home';
-$active = 'home';
-
-// Get active banner slides (dynamic - managed from admin panel)
-$banners = [];
-$result = mysqli_query($conn, "SELECT * FROM banners WHERE status='active' ORDER BY sort_order ASC");
-while ($row = mysqli_fetch_assoc($result)) {
-    $banners[] = $row;
-}
-
-// Get latest 3 projects for the homepage preview (dynamic)
-$latestWork = [];
-$result2 = mysqli_query($conn, "SELECT w.*, c.name AS category_name FROM work_projects w
-                                 LEFT JOIN work_categories c ON w.category_id = c.id
-                                 ORDER BY w.created_at DESC LIMIT 3");
-while ($row = mysqli_fetch_assoc($result2)) {
-    $latestWork[] = $row;
-}
-
+$pageTitle = 'Strata & Beam Engineering — Structural & Civil Engineering, Kathmandu';
+$pageMeta  = 'Structural design, geotechnical investigation, site supervision and infrastructure engineering in Kathmandu, Nepal.';
 require_once __DIR__ . '/includes/header.php';
 ?>
 
-<!-- ============ HOME BANNER (dynamic, Bootstrap Carousel) ============ -->
-<?php if (count($banners) > 0): ?>
-<div id="homeBanner" class="carousel slide" data-bs-ride="carousel">
-  <div class="carousel-indicators">
-    <?php foreach ($banners as $i => $b): ?>
-      <button type="button" data-bs-target="#homeBanner" data-bs-slide-to="<?= $i ?>" class="<?= $i === 0 ? 'active' : '' ?>"></button>
-    <?php endforeach; ?>
-  </div>
-  <div class="carousel-inner">
-    <?php foreach ($banners as $i => $b): ?>
-      <div class="carousel-item <?= $i === 0 ? 'active' : '' ?>" style="background-image:url('<?= h($b['image']) ?>');">
-        <div class="carousel-caption-custom">
-          <div class="container">
-            <h1><?= h($b['title']) ?></h1>
-            <?php if ($b['subtitle']): ?><p><?= h($b['subtitle']) ?></p><?php endif; ?>
-            <?php if ($b['button_text'] && $b['button_link']): ?>
-              <a href="<?= h($b['button_link']) ?>" class="btn btn-amber btn-lg">
-                <?= h($b['button_text']) ?>
-              </a>
-            <?php endif; ?>
-          </div>
-        </div>
-      </div>
-    <?php endforeach; ?>
-  </div>
-  <?php if (count($banners) > 1): ?>
-    <button class="carousel-control-prev" type="button" data-bs-target="#homeBanner" data-bs-slide="prev">
-      <span class="carousel-control-prev-icon"></span>
-    </button>
-    <button class="carousel-control-next" type="button" data-bs-target="#homeBanner" data-bs-slide="next">
-      <span class="carousel-control-next-icon"></span>
-    </button>
-  <?php endif; ?>
-</div>
-<?php else: ?>
-  <div class="bg-charcoal text-center text-white py-5">
-    <div class="container py-5">
-      <h1>Building The Infrastructure Of Tomorrow</h1>
-      <p>Add banner slides from the admin panel to feature them here.</p>
-      <a href="services.php" class="btn btn-amber btn-lg">Our Services</a>
-    </div>
-  </div>
-<?php endif; ?>
-
-<!-- ============ ABOUT PREVIEW (static) ============ -->
-<section class="py-5">
-  <div class="container">
-    <div class="row align-items-center g-4">
-      <div class="col-lg-6">
-        <img src="https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=900&q=80" class="img-fluid" alt="Engineers reviewing blueprints">
-      </div>
-      <div class="col-lg-6">
-        <h6 class="text-amber">Who We Are</h6>
-        <h2 class="mb-3">Engineering Consultancy Built On Precision And Trust</h2>
-        <p>Structura Consultancy has spent over two decades delivering structural design, site supervision, and full project management for residential, commercial, industrial and public infrastructure projects.</p>
-        <p>Our team of licensed civil engineers combines technical rigor with practical, on-site experience so every project is delivered safely and on schedule.</p>
-        <a href="about.php" class="btn btn-amber mt-2">More About Us</a>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ SERVICES PREVIEW (static) ============ -->
-<section class="py-5 bg-concrete">
-  <div class="container">
-    <div class="text-center mb-4">
-      <h6 class="text-amber">What We Do</h6>
-      <h2>Our Core Services</h2>
-    </div>
-    <div class="row g-4">
-      <div class="col-md-6 col-lg-3">
-        <div class="service-card">
-          <div class="icon-box"><i class="bi bi-rulers"></i></div>
-          <h5>Structural Design</h5>
-          <p class="mb-0">Structural analysis and drawings compliant with national codes.</p>
-        </div>
-      </div>
-      <div class="col-md-6 col-lg-3">
-        <div class="service-card">
-          <div class="icon-box"><i class="bi bi-cone-striped"></i></div>
-          <h5>Site Supervision</h5>
-          <p class="mb-0">On-ground quality and safety supervision from start to handover.</p>
-        </div>
-      </div>
-      <div class="col-md-6 col-lg-3">
-        <div class="service-card">
-          <div class="icon-box"><i class="bi bi-clipboard-data"></i></div>
-          <h5>Project Management</h5>
-          <p class="mb-0">Scheduling, budgeting and contractor coordination.</p>
-        </div>
-      </div>
-      <div class="col-md-6 col-lg-3">
-        <div class="service-card">
-          <div class="icon-box"><i class="bi bi-search"></i></div>
-          <h5>Feasibility Studies</h5>
-          <p class="mb-0">Site and soil feasibility studies before you build.</p>
-        </div>
-      </div>
-    </div>
-    <div class="text-center mt-4">
-      <a href="services.php" class="btn btn-amber">View All Services</a>
-    </div>
-  </div>
-</section>
-
-<!-- ============ OUR WORK PREVIEW (dynamic) ============ -->
-<section class="py-5">
-  <div class="container">
-    <div class="text-center mb-4">
-      <h6 class="text-amber">Project Logs</h6>
-      <h2>Recent Work</h2>
-    </div>
-    <div class="row g-4">
-      <?php if (count($latestWork) > 0): ?>
-        <?php foreach ($latestWork as $w): ?>
-          <div class="col-md-4">
-            <div class="work-card h-100">
-              <img src="<?= h($w['cover_image']) ?>" alt="<?= h($w['title']) ?>">
-              <div class="work-body">
-                <?php if ($w['status'] === 'ongoing'): ?><span class="badge badge-status mb-2">Ongoing</span><?php endif; ?>
-                <div class="text-amber small"><?= h($w['category_name'] ?? 'Project') ?></div>
-                <h5><a href="work-detail.php?id=<?= (int)$w['id'] ?>" class="text-dark"><?= h($w['title']) ?></a></h5>
-              </div>
+<section class="hero">
+    <div class="container hero-inner">
+        <div class="hero-copy">
+            <span class="eyebrow">Structural &amp; Civil Engineering</span>
+            <h1>We engineer ground you<br>can actually <em>build on</em>.</h1>
+            <p>Structural design, geotechnical investigation and site supervision for buildings and infrastructure across Nepal — engineered to code, reported in plain numbers.</p>
+            <div class="hero-cta">
+                <a href="contact.php" class="btn btn-primary">Start a Project <?php icon('arrow'); ?></a>
+                <a href="our-work.php" class="btn btn-light">View Our Work</a>
             </div>
-          </div>
-        <?php endforeach; ?>
-      <?php else: ?>
-        <div class="col-12 text-center text-muted">
-          <p>No projects added yet. Add project logs from the admin panel to display them here.</p>
+            <div class="hero-stats">
+                <?php foreach (array_slice($stats, 0, 3) as $s): ?>
+                <div class="stat"><b><?php echo e($s['value']); ?></b><span><?php echo e($s['label']); ?></span></div>
+                <?php endforeach; ?>
+            </div>
         </div>
-      <?php endif; ?>
+
+        <div class="hero-mosaic">
+            <div class="tile t1"><img src="https://picsum.photos/seed/strata-beam-1/700/700" alt="Structural steel frame under construction"><span class="tag">Structural Frame</span></div>
+            <div class="tile t2"><img src="https://picsum.photos/seed/strata-beam-2/500/320" alt="Site engineer reviewing blueprints on site"><span class="tag">On-Site Review</span></div>
+            <div class="tile t3"><img src="https://picsum.photos/seed/strata-beam-3/380/380" alt="Reinforced concrete column formwork"><span class="tag">Formwork</span></div>
+            <div class="tile t4"><img src="https://picsum.photos/seed/strata-beam-4/300/620" alt="Completed commercial building exterior"><span class="tag">Completed Build</span></div>
+            <div class="tile t5"><img src="https://picsum.photos/seed/strata-beam-5/460/380" alt="Road and drainage infrastructure survey"><span class="tag">Infrastructure</span></div>
+            <div class="tile t6"><img src="https://picsum.photos/seed/strata-beam-6/900/280" alt="Geotechnical soil boring test on site"><span class="tag">Geotechnical</span></div>
+        </div>
     </div>
-    <div class="text-center mt-4">
-      <a href="our-work.php" class="btn btn-amber">View Full Portfolio</a>
-    </div>
-  </div>
 </section>
 
-<!-- ============ CTA ============ -->
-<section class="py-5 bg-charcoal text-center">
-  <div class="container">
-    <h2 class="text-white">Have A Project In Mind?</h2>
-    <p class="text-white-50 mb-4">Talk to our engineering team for a free initial consultation.</p>
-    <a href="contact.php" class="btn btn-amber">Get In Touch</a>
-  </div>
+<section class="stats-strip">
+    <div class="container stats-grid">
+        <?php foreach ($stats as $s): ?>
+        <div class="stat"><b><?php echo e($s['value']); ?></b><span><?php echo e($s['label']); ?></span></div>
+        <?php endforeach; ?>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div class="section-head center">
+            <div class="dim-line"><span>What We Do</span></div>
+            <h2>Six disciplines. One site team.</h2>
+            <p class="section-lede">From the first soil sample to the final walkthrough — every discipline your project needs, coordinated under one roof.</p>
+        </div>
+        <div class="grid-3">
+            <?php foreach (array_slice($services, 0, 6) as $s): ?>
+            <div class="service-card reveal">
+                <div class="service-icon"><?php icon($s['icon']); ?></div>
+                <h3><?php echo e($s['title']); ?></h3>
+                <p><?php echo e($s['short']); ?></p>
+                <a href="services.php#<?php echo e($s['id']); ?>" class="card-link">Learn More <?php icon('arrow'); ?></a>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<section class="section alt blueprint-bg workflow">
+    <div class="container">
+        <div class="section-head center">
+            <div class="dim-line"><span>How We Work</span></div>
+            <h2>A fixed six-step process</h2>
+            <p class="section-lede">The same sequence on every project, so nothing gets skipped between survey and handover.</p>
+        </div>
+        <div class="workflow-track">
+            <?php foreach ($workflow as $step): ?>
+            <div class="wf-step reveal">
+                <div class="wf-num"><?php echo e($step['step']); ?></div>
+                <h4><?php echo e($step['title']); ?></h4>
+                <p><?php echo e($step['desc']); ?></p>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div class="section-head center">
+            <div class="dim-line"><span>Selected Work</span></div>
+            <h2>Recently completed</h2>
+        </div>
+        <div class="grid-3">
+            <?php foreach (array_slice($projects, 0, 3) as $p): ?>
+            <a href="our-work.php?id=<?php echo (int)$p['id']; ?>" class="project-card reveal">
+                <div class="project-thumb">
+                    <img src="https://picsum.photos/seed/strata-beam-proj<?php echo (int)$p['id']; ?>/600/440" alt="<?php echo e($p['title']); ?>">
+                    <span class="cat-tag"><?php echo e(ucfirst($p['category'])); ?></span>
+                </div>
+                <div class="project-body">
+                    <div class="meta"><?php echo e($p['location']); ?> · <?php echo e((string)$p['year']); ?></div>
+                    <h3><?php echo e($p['title']); ?></h3>
+                    <p><?php echo e($p['summary']); ?></p>
+                    <span class="card-link">View Project <?php icon('arrow'); ?></span>
+                </div>
+            </a>
+            <?php endforeach; ?>
+        </div>
+        <div style="text-align:center;margin-top:40px;">
+            <a href="our-work.php" class="btn btn-outline">See All Projects</a>
+        </div>
+    </div>
+</section>
+
+<section class="section section-tight" style="background:var(--sand-050);">
+    <div class="container">
+        <div class="section-head center">
+            <div class="dim-line"><span>Client Feedback</span></div>
+            <h2>What clients tell us after handover</h2>
+        </div>
+        <div class="grid-3">
+            <?php foreach ($testimonials as $t): ?>
+            <div class="testi-card reveal">
+                <p>"<?php echo e($t['quote']); ?>"</p>
+                <span class="testi-name"><?php echo e($t['name']); ?></span><br>
+                <span class="testi-project"><?php echo e($t['project']); ?></span>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<section class="section-tight">
+    <div class="container">
+        <div class="cta-band reveal">
+            <div>
+                <h2>Have a site that needs engineering?</h2>
+                <p>Tell us where it is and what you're building — we'll reply with next steps within one business day.</p>
+            </div>
+            <a href="contact.php" class="btn btn-light">Get In Touch <?php icon('arrow'); ?></a>
+        </div>
+    </div>
 </section>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

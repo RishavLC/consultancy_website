@@ -1,74 +1,135 @@
 <?php
-require_once __DIR__ . '/includes/db.php';
-require_once __DIR__ . '/includes/functions.php';
-$pageTitle = 'Our Work';
-$active = 'work';
-
-// Simple category filter using a GET parameter (no JS needed)
-$catFilter = isset($_GET['cat']) ? (int)$_GET['cat'] : 0;
-
-$categories = [];
-$catResult = mysqli_query($conn, "SELECT * FROM work_categories ORDER BY name ASC");
-while ($row = mysqli_fetch_assoc($catResult)) { $categories[] = $row; }
-
-if ($catFilter > 0) {
-    $stmt = mysqli_prepare($conn, "SELECT w.*, c.name AS category_name FROM work_projects w
-                                    LEFT JOIN work_categories c ON w.category_id = c.id
-                                    WHERE w.category_id = ? ORDER BY w.created_at DESC");
-    mysqli_stmt_bind_param($stmt, 'i', $catFilter);
-    mysqli_stmt_execute($stmt);
-    $projects_result = mysqli_stmt_get_result($stmt);
-} else {
-    $projects_result = mysqli_query($conn, "SELECT w.*, c.name AS category_name FROM work_projects w
-                                              LEFT JOIN work_categories c ON w.category_id = c.id
-                                              ORDER BY w.created_at DESC");
-}
-
+$pageTitle = 'Our Work — Strata & Beam Engineering';
+$pageMeta  = 'Structural, residential, infrastructure and retrofit projects completed by Strata & Beam Engineering.';
 require_once __DIR__ . '/includes/header.php';
+
+// --- Dynamic single-project view driven entirely by the ?id= query param ---
+$activeProject = null;
+if (isset($_GET['id'])) {
+    $requestedId = (int) $_GET['id'];
+    foreach ($projects as $p) {
+        if ($p['id'] === $requestedId) { $activeProject = $p; break; }
+    }
+}
 ?>
 
-<div class="page-header">
-  <div class="container">
-    <h1>Our Work</h1>
-    <nav><ol class="breadcrumb"><li class="breadcrumb-item"><a href="index.php">Home</a></li><li class="breadcrumb-item active">Our Work</li></ol></nav>
-  </div>
-</div>
-
-<section class="py-5">
-  <div class="container">
-
-    <!-- Category filter (simple links, no JS) -->
-    <div class="mb-4 text-center">
-      <a href="our-work.php" class="btn btn-sm <?= $catFilter === 0 ? 'btn-amber' : 'btn-outline-secondary' ?> me-2 mb-2">All</a>
-      <?php foreach ($categories as $c): ?>
-        <a href="our-work.php?cat=<?= (int)$c['id'] ?>" class="btn btn-sm <?= $catFilter === (int)$c['id'] ? 'btn-amber' : 'btn-outline-secondary' ?> me-2 mb-2"><?= h($c['name']) ?></a>
-      <?php endforeach; ?>
+<section class="page-banner">
+    <div class="banner-strip">
+        <img src="https://picsum.photos/seed/strata-beam-w1/300/500" alt="">
+        <img src="https://picsum.photos/seed/strata-beam-w2/300/500" alt="">
+        <img src="https://picsum.photos/seed/strata-beam-w3/300/500" alt="">
+        <img src="https://picsum.photos/seed/strata-beam-w4/300/500" alt="">
+        <img src="https://picsum.photos/seed/strata-beam-w5/300/500" alt="">
     </div>
-
-    <div class="row g-4">
-      <?php if (mysqli_num_rows($projects_result) > 0): ?>
-        <?php while ($p = mysqli_fetch_assoc($projects_result)): ?>
-          <div class="col-md-6 col-lg-4">
-            <div class="work-card h-100">
-              <img src="<?= h($p['cover_image']) ?>" alt="<?= h($p['title']) ?>">
-              <div class="work-body">
-                <?php if ($p['status'] === 'ongoing'): ?><span class="badge badge-status mb-2">Ongoing</span><?php endif; ?>
-                <div class="text-amber small"><?= h($p['category_name'] ?? 'Project') ?></div>
-                <h5><a href="work-detail.php?id=<?= (int)$p['id'] ?>" class="text-dark"><?= h($p['title']) ?></a></h5>
-                <p class="text-muted small mb-1"><i class="bi bi-geo-alt"></i> <?= h($p['location']) ?></p>
-                <p class="mb-0"><?= h(excerpt($p['short_desc'], 16)) ?></p>
-              </div>
-            </div>
-          </div>
-        <?php endwhile; ?>
-      <?php else: ?>
-        <div class="col-12 text-center text-muted">
-          <p>No projects found in this category.</p>
-        </div>
-      <?php endif; ?>
+    <div class="container">
+        <p class="crumb">
+            <a href="index.php">Home</a> / <a href="our-work.php">Our Work</a><?php if ($activeProject): ?> / <?php echo e($activeProject['title']); ?><?php endif; ?>
+        </p>
+        <span class="eyebrow">Project Portfolio</span>
+        <?php if ($activeProject): ?>
+            <h1><?php echo e($activeProject['title']); ?></h1>
+            <p><?php echo e($activeProject['location']); ?> · <?php echo e((string)$activeProject['year']); ?></p>
+        <?php else: ?>
+            <h1>Sites we've<br>stood on.</h1>
+            <p>Six years of structural, infrastructure and retrofit work across Nepal — filter by project type below.</p>
+        <?php endif; ?>
     </div>
-
-  </div>
 </section>
+
+<?php if ($activeProject): ?>
+
+<section class="section">
+    <div class="container">
+        <div class="project-detail">
+            <div class="project-image reveal">
+                <img src="https://picsum.photos/seed/strata-beam-proj<?php echo (int)$activeProject['id']; ?>/900/680" alt="<?php echo e($activeProject['title']); ?>">
+            </div>
+            <div class="reveal">
+                <span class="scope-chip" style="background:var(--brown-900); color:#fff;"><?php echo e(ucfirst($activeProject['category'])); ?></span>
+                <h2 style="margin-top:16px;"><?php echo e($activeProject['title']); ?></h2>
+                <p class="section-lede"><?php echo e($activeProject['summary']); ?></p>
+                <p><?php echo e($activeProject['detail']); ?></p>
+
+                <div class="project-spec-list">
+                    <?php foreach ($activeProject['stats'] as $label => $value): ?>
+                    <div><b><?php echo e($value); ?></b><span><?php echo e($label); ?></span></div>
+                    <?php endforeach; ?>
+                </div>
+
+                <h4 style="margin-bottom:10px;">Scope of Work</h4>
+                <div style="margin-bottom:26px;">
+                    <?php foreach ($activeProject['scope'] as $scopeItem): ?>
+                    <span class="scope-chip"><?php echo e($scopeItem); ?></span>
+                    <?php endforeach; ?>
+                </div>
+
+                <a href="contact.php" class="btn btn-primary">Discuss A Similar Project <?php icon('arrow'); ?></a>
+                <a href="our-work.php" class="btn btn-outline">&larr; All Projects</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="section" style="background:var(--sand-050); padding-top:50px;">
+    <div class="container">
+        <div class="dim-line"><span>More Projects</span></div>
+        <h2 style="margin-bottom:30px;">Related work</h2>
+        <div class="grid-3">
+            <?php
+            $related = array_filter($projects, function ($p) use ($activeProject) {
+                return $p['id'] !== $activeProject['id'] && $p['category'] === $activeProject['category'];
+            });
+            if (count($related) < 3) { $related = array_filter($projects, function ($p) use ($activeProject) { return $p['id'] !== $activeProject['id']; }); }
+            foreach (array_slice($related, 0, 3) as $p):
+            ?>
+            <a href="our-work.php?id=<?php echo (int)$p['id']; ?>" class="project-card reveal">
+                <div class="project-thumb">
+                    <img src="https://picsum.photos/seed/strata-beam-proj<?php echo (int)$p['id']; ?>/600/440" alt="<?php echo e($p['title']); ?>">
+                    <span class="cat-tag"><?php echo e(ucfirst($p['category'])); ?></span>
+                </div>
+                <div class="project-body">
+                    <div class="meta"><?php echo e($p['location']); ?> · <?php echo e((string)$p['year']); ?></div>
+                    <h3><?php echo e($p['title']); ?></h3>
+                    <span class="card-link">View Project <?php icon('arrow'); ?></span>
+                </div>
+            </a>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<?php else: ?>
+
+<section class="section">
+    <div class="container">
+        <div class="filter-row" data-filter-group data-filter-target=".js-project-item" data-empty-target="#projectsEmpty">
+            <button class="filter-btn active" data-filter="all">All Projects</button>
+            <button class="filter-btn" data-filter="commercial">Commercial</button>
+            <button class="filter-btn" data-filter="residential">Residential</button>
+            <button class="filter-btn" data-filter="infrastructure">Infrastructure</button>
+            <button class="filter-btn" data-filter="retrofit">Retrofit</button>
+        </div>
+
+        <div class="grid-3" id="projectsGrid">
+            <?php foreach ($projects as $p): ?>
+            <a href="our-work.php?id=<?php echo (int)$p['id']; ?>" class="project-card js-project-item reveal" data-category="<?php echo e($p['category']); ?>">
+                <div class="project-thumb">
+                    <img src="https://picsum.photos/seed/strata-beam-proj<?php echo (int)$p['id']; ?>/600/440" alt="<?php echo e($p['title']); ?>">
+                    <span class="cat-tag"><?php echo e(ucfirst($p['category'])); ?></span>
+                </div>
+                <div class="project-body">
+                    <div class="meta"><?php echo e($p['location']); ?> · <?php echo e((string)$p['year']); ?></div>
+                    <h3><?php echo e($p['title']); ?></h3>
+                    <p><?php echo e($p['summary']); ?></p>
+                    <span class="card-link">View Project <?php icon('arrow'); ?></span>
+                </div>
+            </a>
+            <?php endforeach; ?>
+        </div>
+        <p id="projectsEmpty" class="empty-state" style="display:none;">No projects in this category yet — check back soon or <a href="contact.php" style="color:var(--clay-500);">ask us directly</a>.</p>
+    </div>
+</section>
+
+<?php endif; ?>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
