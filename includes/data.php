@@ -19,10 +19,10 @@ $services = [
     [
         'id'    => 'structural-design',
         'icon'  => 'blueprint',
-        'title' => 'Structural Design',
-        'short' => 'Load-bearing systems engineered for seismic and wind resilience.',
-        'desc'  => 'We model, analyze and certify structural frames for residential, commercial and industrial buildings — covering RCC, steel and composite systems, with full seismic-zone compliance for Nepal\'s building code (NBC).',
-        'features' => ['Seismic & wind load analysis', 'RCC & structural steel detailing', 'Foundation & retaining design', 'Peer-review & code compliance'],
+        'title' => 'Structural Engineering & Design',
+        'short' => 'Seismic-resilient structural systems for buildings of all scales.',
+        'desc'  => 'Comprehensive structural engineering: modeling, analysis and certified design for residential, commercial and industrial projects. Specialised in RCC, structural steel and composite solutions, with designs compliant to Nepal\'s NBC seismic requirements.',
+        'features' => ['Seismic and wind-load analysis', 'RCC and steel detailing', 'Foundation and retaining-system design', 'Independent peer review & code compliance'],
     ],
     [
         'id'    => 'site-supervision',
