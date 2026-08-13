@@ -64,6 +64,22 @@ $services = [
         'desc'  => 'Structural assessment and retrofit design for older buildings — jacketing, bracing and foundation underpinning to bring them up to current seismic standards.',
         'features' => ['Structural health assessment', 'Column & beam jacketing', 'Seismic bracing design', 'Underpinning & foundation repair'],
     ],
+    [
+        'id'    => 'quality-testing',
+        'icon'  => 'strata',
+        'title' => 'Quality Testing & Inspection',
+        'short' => 'Material verification and compliance testing for every pour and weld.',
+        'desc'  => 'Concrete cube testing, rebar verification and weld inspection to ensure materials meet design specifications and code requirements.',
+        'features' => ['Concrete cube compression tests', 'Rebar & material verification', 'Weld inspection & certification', 'Compliance reporting'],
+    ],
+    [
+        'id'    => 'permitting',
+        'icon'  => 'road',
+        'title' => 'Permitting & Regulatory Compliance',
+        'short' => 'Navigating municipal approvals and code compliance for your project.',
+        'desc'  => 'We prepare and submit drawing packages to municipal authorities, track approvals, and handle any required revisions to ensure your project meets all regulatory requirements.',
+        'features' => ['Drawing package preparation', 'Municipal submission & tracking', 'Code compliance review', 'Revision handling'],
+    ],
 ];
 
 // The workflow is a genuine ordered sequence, so numbered steps are earned here.
