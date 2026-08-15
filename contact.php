@@ -24,48 +24,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
     $formData['service'] = trim($_POST['service'] ?? '');
     $formData['message'] = trim($_POST['message'] ?? '');
 
-    if ($formData['name'] === '' || mb_strlen($formData['name']) < 2) {
-        $errors['name'] = 'Please enter your full name.';
-    }
-    if ($formData['email'] === '' || !filter_var($formData['email'], FILTER_VALIDATE_EMAIL)) {
-        $errors['email'] = 'Please enter a valid email address.';
-    }
-    if ($formData['phone'] !== '' && !preg_match('/^[0-9+\-\s()]{7,20}$/', $formData['phone'])) {
-        $errors['phone'] = 'Please enter a valid phone number.';
-    }
-    if ($formData['service'] === '') {
-        $errors['service'] = 'Please select a service.';
-    }
-    if ($formData['message'] === '' || mb_strlen($formData['message']) < 10) {
-        $errors['message'] = 'Please tell us a little about your project (10+ characters).';
-    }
+    if ($formData['name'] === '' || mb_strlen($formData['name']) < 2) $errors['name'] = 'Please enter your full name.';
+    if ($formData['email'] === '' || !filter_var($formData['email'], FILTER_VALIDATE_EMAIL)) $errors['email'] = 'Please enter a valid email address.';
+    if ($formData['phone'] !== '' && !preg_match('/^[0-9+\-\s()]{7,20}$/', $formData['phone'])) $errors['phone'] = 'Please enter a valid phone number.';
+    if ($formData['service'] === '') $errors['service'] = 'Please select a service.';
+    if ($formData['message'] === '' || mb_strlen($formData['message']) < 10) $errors['message'] = 'Please tell us a little about your project (10+ characters).';
 
     if (empty($errors)) {
-        $logDir = __DIR__ . '/data';
-        if (!is_dir($logDir)) { @mkdir($logDir, 0755, true); }
-        $logFile = $logDir . '/inquiries.json';
-
-        $entry = [
-            'name'    => $formData['name'],
-            'email'   => $formData['email'],
-            'phone'   => $formData['phone'],
-            'service' => $formData['service'],
-            'message' => $formData['message'],
-            'time'    => date('Y-m-d H:i:s'),
-        ];
-
-        $existing = [];
-        if (is_file($logFile)) {
-            $raw = file_get_contents($logFile);
-            $decoded = json_decode($raw, true);
-            if (is_array($decoded)) { $existing = $decoded; }
-        }
-        $existing[] = $entry;
-        @file_put_contents($logFile, json_encode($existing, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-
-        // In production, send a notification email here, e.g.:
-        // mail($site['email'], 'New enquiry from ' . $formData['name'], $formData['message']);
-
+        $st = $pdo->prepare('INSERT INTO enquiries(name,email,phone,service,message) VALUES(?,?,?,?,?)');
+        $st->execute([$formData['name'], $formData['email'], $formData['phone'], $formData['service'], $formData['message']]);
         $success = true;
         $formData = ['name' => '', 'email' => '', 'phone' => '', 'service' => '', 'message' => ''];
     }

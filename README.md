@@ -1,44 +1,55 @@
-# Strata & Beam Engineering — Website (Core PHP)
+# Strata & Beam Engineering — Dynamic PHP + MySQL Website
 
-A full civil/structural engineering company website built in plain PHP (no framework).
+This version keeps the original Core PHP frontend but moves the website content and contact enquiries into **MySQL**.
 
-## Pages
-- `index.php` — Home, with the mosaic image banner, services preview, workflow and featured projects
-- `about.php` — Company story, timeline, values, team
-- `services.php` — Full service list + shared process workflow
-- `our-work.php` — Project portfolio grid with filters, and a dynamic detail view at `our-work.php?id=1` (through `6`)
-- `gallery.php` — Filterable photo gallery with a lightbox
-- `contact.php` — Contact form with server-side PHP validation
-- `404.php` — Custom not-found page
+## Requirements
+- PHP 7.4+ (PHP 8.x recommended)
+- MySQL 5.7+ / MariaDB 10.4+
+- Apache/XAMPP/WAMP or another PHP host
+- PHP PDO MySQL extension enabled
 
-## Structure
-```
-includes/data.php       All site content: services, projects, team, gallery, workflow steps — edit this to update the site
-includes/functions.php  Small helpers (active nav state, inline icon renderer)
-includes/header.php     Shared <head> + nav, included by every page
-includes/footer.php     Shared footer, included by every page
-assets/css/style.css    All styling (brown / clay-terracotta / sand palette)
-assets/js/script.js     Mobile nav, scroll reveal, filters, lightbox, back-to-top
-data/inquiries.json     Contact form submissions are appended here (auto-created, protected by .htaccess)
-```
+## Quick setup on XAMPP
+1. Copy `consultancy_website` into `C:\xampp\htdocs\`.
+2. Start **Apache** and **MySQL** in XAMPP.
+3. Open `config/database.php` and change DB credentials if your MySQL password is not blank.
+4. Visit `http://localhost/consultancy_website/install.php`.
+5. Click **Install / Seed Database**.
+6. Login at `http://localhost/consultancy_website/admin/login.php`.
+7. Default login: **admin / admin123**.
+8. Change the admin password in the database after first login, and delete/rename `install.php` after setup.
 
-## Running it locally
-You need PHP installed (`php -v` to check). From the project folder, run:
+### Alternative phpMyAdmin setup
+- Import `schema.sql` first.
+- Import `seed.sql` second.
+- Then open the website.
 
-```bash
-php -S localhost:8000
-```
+## What is now dynamic?
+- Services
+- Projects and project details
+- Gallery
+- Team members
+- Testimonials
+- Office/site settings
+- Statistics
+- Contact enquiries
 
-Then open `http://localhost:8000/index.php` in your browser. All the nav links use relative `.php` paths, so this also works dropped into any Apache/Nginx + PHP host (XAMPP, WAMP, shared hosting, etc.) — including at `http://localhost/index.php` as in your original brief.
+The frontend still uses the same `$services`, `$projects`, `$gallery`, `$team`, etc. variables, but `includes/data.php` now reads them from MySQL.
+
+## Admin panel
+- Dashboard counts
+- Add/edit/delete Services
+- Add/edit/delete Projects
+- Add/edit/delete Gallery items
+- Add/edit/delete Team members
+- Add/edit/delete Testimonials
+- Edit company settings
+- View and update enquiry status
+
+## Database
+Database name: `consultancy_db`
+
+Main tables:
+`site_settings`, `admins`, `services`, `workflow_steps`, `projects`, `gallery`, `team_members`, `milestones`, `company_values`, `testimonials`, `office_hours`, `site_stats`, `enquiries`.
 
 ## Images
-Every image on the site currently points to `picsum.photos` as a live placeholder image service, so the whole site renders correctly out of the box. Swap these for your real project photos:
-
-1. Save your photos into `assets/images/`
-2. In `includes/data.php`, `index.php`, `about.php`, `services.php`, `our-work.php`, `gallery.php` and `contact.php`, replace the `https://picsum.photos/seed/...` URLs with `assets/images/your-file.jpg`
-
-## Editing content
-Almost everything on the site — services, the 6-step workflow, projects, gallery photos, team bios, testimonials, office hours — lives in `includes/data.php` as plain PHP arrays. Add, remove or edit an array entry and every page that uses it (cards, footer links, filters) updates automatically.
-
-## Contact form
-`contact.php` validates name, email, phone format and message length server-side (PHP, not just JavaScript) and writes each valid submission to `data/inquiries.json`. To actually send email notifications, uncomment and configure the `mail()` line inside `contact.php` (or swap in PHPMailer/SMTP) — most local dev environments don't have a mail server configured, so this is left as a clearly marked line to wire up on your host.
+The existing website continues to use the original `picsum.photos` placeholders. The database stores image filenames so you can later replace them with files under `assets/images/` and update the records from the admin/database.
