@@ -16,5 +16,3 @@ Default XAMPP settings are used:
 - Database: `consultancy_db`
 - User: `root`
 - Password: empty
-
-If your MySQL credentials differ, edit `config/database.php`.
