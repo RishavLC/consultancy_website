@@ -42,7 +42,7 @@ if (isset($_GET['id'])) {
     <div class="container">
         <div class="project-detail">
             <div class="project-image reveal">
-                <img src="https://picsum.photos/seed/strata-beam-proj<?php echo (int)$activeProject['id']; ?>/900/680" alt="<?php echo e($activeProject['title']); ?>">
+                <img src="<?php echo e(image_url($activeProject['image'], 'strata-beam-proj' . $activeProject['id'], '900/680')); ?>" alt="<?php echo e($activeProject['title']); ?>">
             </div>
             <div class="reveal">
                 <span class="scope-chip" style="background:var(--brown-900); color:#fff;"><?php echo e(ucfirst($activeProject['category'])); ?></span>
@@ -84,7 +84,7 @@ if (isset($_GET['id'])) {
             ?>
             <a href="our-work.php?id=<?php echo (int)$p['id']; ?>" class="project-card reveal">
                 <div class="project-thumb">
-                    <img src="https://picsum.photos/seed/strata-beam-proj<?php echo (int)$p['id']; ?>/600/440" alt="<?php echo e($p['title']); ?>">
+                    <img src="<?php echo e(image_url($p['image'], 'strata-beam-proj' . $p['id'], '600/440')); ?>" alt="<?php echo e($p['title']); ?>">
                     <span class="cat-tag"><?php echo e(ucfirst($p['category'])); ?></span>
                 </div>
                 <div class="project-body">
@@ -114,7 +114,7 @@ if (isset($_GET['id'])) {
             <?php foreach ($projects as $p): ?>
             <a href="our-work.php?id=<?php echo (int)$p['id']; ?>" class="project-card js-project-item reveal" data-category="<?php echo e($p['category']); ?>">
                 <div class="project-thumb">
-                    <img src="https://picsum.photos/seed/strata-beam-proj<?php echo (int)$p['id']; ?>/600/440" alt="<?php echo e($p['title']); ?>">
+                    <img src="<?php echo e(image_url($p['image'], 'strata-beam-proj' . $p['id'], '600/440')); ?>" alt="<?php echo e($p['title']); ?>">
                     <span class="cat-tag"><?php echo e(ucfirst($p['category'])); ?></span>
                 </div>
                 <div class="project-body">

@@ -35,8 +35,8 @@ require_once __DIR__ . '/includes/header.php';
             <div class="gallery-item js-gallery-item reveal"
                  data-category="<?php echo e($g['category']); ?>"
                  data-title="<?php echo e($g['title']); ?>"
-                 data-full="https://picsum.photos/seed/strata-beam-full<?php echo (int)$g['id']; ?>/1100/800">
-                <img src="https://picsum.photos/seed/strata-beam-full<?php echo (int)$g['id']; ?>/500/500" alt="<?php echo e($g['title']); ?>" loading="lazy">
+                 data-full="<?php echo e(image_url($g['image'], 'strata-beam-full' . $g['id'], '1100/800')); ?>">
+                <img src="<?php echo e(image_url($g['image'], 'strata-beam-full' . $g['id'], '500/500')); ?>" alt="<?php echo e($g['title']); ?>" loading="lazy">
                 <div class="g-cap"><?php echo e($g['title']); ?></div>
             </div>
             <?php endforeach; ?>

@@ -78,7 +78,7 @@ require_once __DIR__ . '/includes/header.php';
         <div class="grid-4">
             <?php foreach ($team as $member): ?>
             <div class="team-card reveal">
-                <div class="team-photo"><img src="https://picsum.photos/seed/strata-beam-<?php echo e(str_replace(' ', '', strtolower($member['name']))); ?>/400/500" alt="<?php echo e($member['name']); ?>"></div>
+                <div class="team-photo"><img src="<?php echo e(image_url($member['image'] ?? null, 'strata-beam-' . str_replace(' ', '', strtolower($member['name'])), '400/500')); ?>" alt="<?php echo e($member['name']); ?>"></div>
                 <h4><?php echo e($member['name']); ?></h4>
                 <span class="role"><?php echo e($member['role']); ?></span>
                 <p><?php echo e($member['bio']); ?></p>

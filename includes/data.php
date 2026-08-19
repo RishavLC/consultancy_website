@@ -30,7 +30,7 @@ $site = [
     'founded' => (int)($settings['founded'] ?? 2008),
 ];
 
-$services = rows('SELECT * FROM services WHERE is_active=1 ORDER BY sort_order,id');
+$services = rows("SELECT id AS db_id, slug AS id, icon, title, short_text AS short, description AS `desc`, features, sort_order FROM services WHERE is_active=1 ORDER BY sort_order,id");
 foreach ($services as &$s) $s['features'] = json_array($s['features']); unset($s);
 $workflow = rows('SELECT step,title,description AS `desc` FROM workflow_steps WHERE is_active=1 ORDER BY sort_order,id');
 $projects = rows('SELECT * FROM projects WHERE is_active=1 ORDER BY year DESC,id DESC');

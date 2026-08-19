@@ -89,7 +89,7 @@ require_once __DIR__ . '/includes/header.php';
             <?php foreach (array_slice($projects, 0, 3) as $p): ?>
             <a href="our-work.php?id=<?php echo (int)$p['id']; ?>" class="project-card reveal">
                 <div class="project-thumb">
-                    <img src="https://picsum.photos/seed/strata-beam-proj<?php echo (int)$p['id']; ?>/600/440" alt="<?php echo e($p['title']); ?>">
+                    <img src="<?php echo e(image_url($p['image'], 'strata-beam-proj' . $p['id'], '600/440')); ?>" alt="<?php echo e($p['title']); ?>">
                     <span class="cat-tag"><?php echo e(ucfirst($p['category'])); ?></span>
                 </div>
                 <div class="project-body">

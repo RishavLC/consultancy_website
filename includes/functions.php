@@ -37,3 +37,19 @@ function icon(string $name, string $class = 'icon'): void {
 function e(string $s): string {
     return htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
 }
+
+/**
+ * Resolves an uploaded image filename to a real URL. Falls back to a
+ * placeholder image (seeded so it stays consistent) until someone
+ * uploads a real photo through /admin — so the site never shows a
+ * broken image icon.
+ */
+function image_url(?string $filename, string $fallbackSeed, string $size = '600/440'): string {
+    if (!empty($filename)) {
+        $path = __DIR__ . '/../assets/images/uploads/' . $filename;
+        if (is_file($path)) {
+            return 'assets/images/uploads/' . rawurlencode($filename);
+        }
+    }
+    return 'https://picsum.photos/seed/' . rawurlencode($fallbackSeed) . '/' . $size;
+}
