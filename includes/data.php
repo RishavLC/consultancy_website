@@ -4,9 +4,12 @@ require_once __DIR__ . '/../config/database.php';
 
 try {
     $pdo = db();
+    $pdo->query('SELECT 1 FROM site_settings LIMIT 1'); // fails if the installer has not been run yet
 } catch (Throwable $e) {
-    http_response_code(500);
-    exit('<h1>Database connection failed</h1><p>Open <code>config/database.php</code>, set your MySQL credentials, create the <code>consultancy_db</code> database, then run <a href="install.php">install.php</a>.</p>');
+    log_error($e, 'DB connect');
+    http_response_code(503);
+    $hint = APP_DEBUG ? '<p><small>' . htmlspecialchars($e->getMessage()) . '</small></p>' : '';
+    exit('<!doctype html><meta charset="utf-8"><title>Temporarily unavailable</title><body style="font-family:sans-serif;max-width:560px;margin:15vh auto;padding:0 20px"><h1>We\'ll be right back</h1><p>The website is temporarily unavailable. Please try again in a few minutes.</p>' . $hint . '</body>');
 }
 
 function rows(string $sql, array $params = []): array {
@@ -28,6 +31,10 @@ $site = [
     'email' => $settings['email'] ?? 'info@strataandbeam.com',
     'address' => $settings['address'] ?? 'Putalisadak Road, Kathmandu 44600, Nepal',
     'founded' => (int)($settings['founded'] ?? 2008),
+    'facebook' => $settings['facebook'] ?? '',
+    'instagram' => $settings['instagram'] ?? '',
+    'linkedin' => $settings['linkedin'] ?? '',
+    'mapQuery' => $settings['mapQuery'] ?? '',
 ];
 
 $services = rows("SELECT id AS db_id, slug AS id, icon, title, short_text AS short, description AS `desc`, features, sort_order FROM services WHERE is_active=1 ORDER BY sort_order,id");

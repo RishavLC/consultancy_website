@@ -7,34 +7,51 @@ $pageMeta  = 'Get in touch with Strata & Beam Engineering for a structural, geot
 
 /**
  * ---- Server-side contact form handling (Core PHP, no framework) ----
- * Processed BEFORE any HTML is output, so this could redirect after a
- * successful POST if desired. Validates required fields, then appends
- * the enquiry to a local JSON log so it survives even without a
- * configured mail server. Swap the file-log block for mail()/PHPMailer
- * in production.
+ * Protection layers: signed time-stamped token (blocks bots that post blindly or
+ * instantly), hidden honeypot field, per-IP rate limit, server-side validation.
+ * Valid enquiries are saved to the database, emailed to the company address,
+ * and the visitor is redirected (so a page refresh can't re-submit the form).
  */
 $errors = [];
-$success = false;
+$success = isset($_GET['sent']);
 $formData = ['name' => '', 'email' => '', 'phone' => '', 'service' => '', 'message' => ''];
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
-    $formData['name']    = trim($_POST['name'] ?? '');
-    $formData['email']   = trim($_POST['email'] ?? '');
-    $formData['phone']   = trim($_POST['phone'] ?? '');
-    $formData['service'] = trim($_POST['service'] ?? '');
-    $formData['message'] = trim($_POST['message'] ?? '');
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    foreach ($formData as $k => $_) $formData[$k] = trim((string)($_POST[$k] ?? ''));
 
-    if ($formData['name'] === '' || mb_strlen($formData['name']) < 2) $errors['name'] = 'Please enter your full name.';
-    if ($formData['email'] === '' || !filter_var($formData['email'], FILTER_VALIDATE_EMAIL)) $errors['email'] = 'Please enter a valid email address.';
+    $honeypot = trim((string)($_POST['website'] ?? ''));
+    $tokenOk  = form_token_ok((string)($_POST['form_token'] ?? ''));
+
+    if ($honeypot !== '') {
+        // Bot filled the hidden field: pretend success, store nothing.
+        header('Location: contact.php?sent=1'); exit;
+    }
+    if (!$tokenOk) {
+        $errors['form'] = 'Your session timed out or the form was submitted too quickly. Please try again.';
+    }
+
+    if ($formData['name'] === '' || mb_strlen($formData['name']) < 2 || mb_strlen($formData['name']) > 160) $errors['name'] = 'Please enter your full name.';
+    if ($formData['email'] === '' || mb_strlen($formData['email']) > 190 || !filter_var($formData['email'], FILTER_VALIDATE_EMAIL)) $errors['email'] = 'Please enter a valid email address.';
     if ($formData['phone'] !== '' && !preg_match('/^[0-9+\-\s()]{7,20}$/', $formData['phone'])) $errors['phone'] = 'Please enter a valid phone number.';
-    if ($formData['service'] === '') $errors['service'] = 'Please select a service.';
+    $validServices = array_merge(array_column($services, 'title'), ['Not sure yet']);
+    if ($formData['service'] === '' || !in_array($formData['service'], $validServices, true)) $errors['service'] = 'Please select a service.';
     if ($formData['message'] === '' || mb_strlen($formData['message']) < 10) $errors['message'] = 'Please tell us a little about your project (10+ characters).';
+    if (mb_strlen($formData['message']) > 5000) $errors['message'] = 'Please keep your message under 5,000 characters.';
+
+    if (empty($errors) && !rate_limit_hit('contact', client_ip(), 5, 3600)) {
+        $errors['form'] = 'You have sent several enquiries recently. Please wait a while before sending another, or call us on ' . $site['phone'] . '.';
+    }
 
     if (empty($errors)) {
-        $st = $pdo->prepare('INSERT INTO enquiries(name,email,phone,service,message) VALUES(?,?,?,?,?)');
-        $st->execute([$formData['name'], $formData['email'], $formData['phone'], $formData['service'], $formData['message']]);
-        $success = true;
-        $formData = ['name' => '', 'email' => '', 'phone' => '', 'service' => '', 'message' => ''];
+        try {
+            $st = $pdo->prepare('INSERT INTO enquiries(name,email,phone,service,message) VALUES(?,?,?,?,?)');
+            $st->execute([$formData['name'], $formData['email'], $formData['phone'], $formData['service'], $formData['message']]);
+            send_enquiry_mail($site, $formData);
+            header('Location: contact.php?sent=1'); exit;
+        } catch (Throwable $e) {
+            log_error($e, 'enquiry insert');
+            $errors['form'] = 'Sorry, something went wrong on our side. Please try again or contact us by phone or email.';
+        }
     }
 }
 
@@ -83,21 +100,23 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
 
                 <div class="map-embed">
-                    <iframe src="https://www.google.com/maps?q=Kathmandu,Nepal&output=embed" loading="lazy" title="Office location map" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                    <iframe src="https://www.google.com/maps?q=<?php echo rawurlencode($site['mapQuery'] !== '' ? $site['mapQuery'] : $site['address']); ?>&output=embed" loading="lazy" title="Office location map" referrerpolicy="no-referrer-when-downgrade"></iframe>
                 </div>
             </div>
 
             <div class="form-card">
                 <h3 style="margin-bottom:6px;">Send a project enquiry</h3>
-                <p class="section-lede" style="margin-bottom:26px;">Fields marked required are checked on our server before anything is sent.</p>
+                <p class="section-lede" style="margin-bottom:26px;">Fields marked * are required.</p>
 
                 <?php if ($success): ?>
                 <div class="form-alert success"><?php icon('check'); ?><span>Thanks — your enquiry has been received. We'll get back to you within one business day.</span></div>
                 <?php elseif (!empty($errors)): ?>
-                <div class="form-alert error"><span>Please fix the highlighted fields below and resubmit.</span></div>
+                <div class="form-alert error" role="alert"><span><?php echo e($errors['form'] ?? 'Please fix the highlighted fields below and resubmit.'); ?></span></div>
                 <?php endif; ?>
 
                 <form id="contactForm" action="contact.php" method="POST" novalidate>
+                    <input type="hidden" name="form_token" value="<?php echo e(form_token()); ?>">
+                    <div class="hp-field" aria-hidden="true"><label for="website">Leave this field empty</label><input type="text" id="website" name="website" tabindex="-1" autocomplete="off"></div>
                     <div class="form-row">
                         <div class="form-group <?php echo isset($errors['name']) ? 'has-error' : ''; ?>">
                             <label for="name">Full Name *</label>
@@ -133,7 +152,7 @@ require_once __DIR__ . '/includes/header.php';
                         <textarea id="message" name="message" rows="5" required placeholder="Location, building type, approximate size, timeline…"><?php echo e($formData['message']); ?></textarea>
                         <?php if (isset($errors['message'])): ?><div class="field-error"><?php echo e($errors['message']); ?></div><?php endif; ?>
                     </div>
-                    <button type="submit" name="contact_submit" value="1" class="btn btn-primary btn-block">Send Enquiry <?php icon('arrow'); ?></button>
+                    <button type="submit" class="btn btn-primary btn-block">Send Enquiry <?php icon('arrow'); ?></button>
                 </form>
             </div>
 

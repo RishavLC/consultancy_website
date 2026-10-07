@@ -53,3 +53,107 @@ function image_url(?string $filename, string $fallbackSeed, string $size = '600/
     }
     return 'https://picsum.photos/seed/' . rawurlencode($fallbackSeed) . '/' . $size;
 }
+
+/* ------------------------------------------------------------------
+ * Security helpers (contact form protection, rate limiting, mail)
+ * ------------------------------------------------------------------ */
+
+/** Real client IP as seen by PHP. (Proxy headers are deliberately NOT trusted — they are spoofable.) */
+function client_ip(): string {
+    return preg_replace('/[^0-9a-fA-F:.]/', '', $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0') ?: '0.0.0.0';
+}
+
+/** Secret used to sign form tokens. Generated once, stored in data/ (web-blocked). */
+function app_secret(): string {
+    static $secret = null;
+    if ($secret !== null) return $secret;
+    $file = __DIR__ . '/../data/app_secret.key';
+    if (is_file($file) && strlen($s = trim((string)file_get_contents($file))) >= 32) return $secret = $s;
+    $secret = bin2hex(random_bytes(32));
+    @file_put_contents($file, $secret, LOCK_EX);
+    @chmod($file, 0600);
+    return $secret;
+}
+
+/** Signed, time-stamped token embedded in the contact form (works without sessions). */
+function form_token(): string {
+    $t = (string)time();
+    return $t . '.' . hash_hmac('sha256', 'contact|' . $t, app_secret());
+}
+
+/** Returns true if the token is genuine, at least $minAge seconds old, and under $maxAge. */
+function form_token_ok(string $token, int $minAge = 3, int $maxAge = 7200): bool {
+    $parts = explode('.', $token, 2);
+    if (count($parts) !== 2 || !ctype_digit($parts[0])) return false;
+    if (!hash_equals(hash_hmac('sha256', 'contact|' . $parts[0], app_secret()), $parts[1])) return false;
+    $age = time() - (int)$parts[0];
+    return $age >= $minAge && $age <= $maxAge;
+}
+
+/**
+ * Small file-based rate limiter. Returns true if the action is ALLOWED and records the hit;
+ * false once $max hits happened inside the last $window seconds for this bucket+key.
+ */
+function rate_limit_hit(string $bucket, string $key, int $max, int $window): bool {
+    $file = __DIR__ . '/../data/rate_' . preg_replace('/[^a-z0-9_]/i', '', $bucket) . '.json';
+    $fh = @fopen($file, 'c+');
+    if (!$fh) return true; // never block real users because of a disk problem
+    flock($fh, LOCK_EX);
+    $data = json_decode((string)stream_get_contents($fh), true);
+    if (!is_array($data)) $data = [];
+    $now = time(); $k = hash('sha256', $key);
+    foreach ($data as $dk => $hits) {                       // purge old entries
+        $data[$dk] = array_values(array_filter($hits, fn($t) => $t > $now - $window));
+        if (!$data[$dk]) unset($data[$dk]);
+    }
+    $hits = $data[$k] ?? [];
+    $allowed = count($hits) < $max;
+    if ($allowed) { $hits[] = $now; $data[$k] = $hits; }
+    ftruncate($fh, 0); rewind($fh); fwrite($fh, json_encode($data));
+    flock($fh, LOCK_UN); fclose($fh);
+    return $allowed;
+}
+
+/** Read-only check (does not record a hit). */
+function rate_limit_blocked(string $bucket, string $key, int $max, int $window): bool {
+    $file = __DIR__ . '/../data/rate_' . preg_replace('/[^a-z0-9_]/i', '', $bucket) . '.json';
+    $data = is_file($file) ? json_decode((string)file_get_contents($file), true) : [];
+    $hits = is_array($data) ? ($data[hash('sha256', $key)] ?? []) : [];
+    $now = time();
+    return count(array_filter($hits, fn($t) => $t > $now - $window)) >= $max;
+}
+function rate_limit_clear(string $bucket, string $key): void {
+    $file = __DIR__ . '/../data/rate_' . preg_replace('/[^a-z0-9_]/i', '', $bucket) . '.json';
+    if (!is_file($file)) return;
+    $data = json_decode((string)file_get_contents($file), true);
+    if (is_array($data)) { unset($data[hash('sha256', $key)]); @file_put_contents($file, json_encode($data), LOCK_EX); }
+}
+
+/** Strips CR/LF so user input can never inject extra mail headers. */
+function mail_safe(string $s): string { return trim(preg_replace('/[\r\n]+/', ' ', $s)); }
+
+/**
+ * Emails a new enquiry to the company address. Uses PHP's mail() (works on most shared hosting).
+ * Failure is logged but never shown to the visitor — the enquiry is already saved in the database.
+ */
+function send_enquiry_mail(array $site, array $d): bool {
+    $to = mail_safe($site['email'] ?? '');
+    if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) return false;
+    $host = preg_replace('/^www\./', '', preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST'] ?? 'localhost'));
+    $from = defined('MAIL_FROM') ? MAIL_FROM : 'no-reply@' . $host;
+    $subject = '=?UTF-8?B?' . base64_encode('New website enquiry: ' . mail_safe($d['service'])) . '?=';
+    $body = "A new enquiry was submitted on " . ($site['name'] ?? 'your website') . ":\r\n\r\n"
+          . "Name:    " . mail_safe($d['name']) . "\r\n"
+          . "Email:   " . mail_safe($d['email']) . "\r\n"
+          . "Phone:   " . mail_safe($d['phone']) . "\r\n"
+          . "Service: " . mail_safe($d['service']) . "\r\n\r\n"
+          . "Message:\r\n" . $d['message'] . "\r\n\r\n"
+          . "Manage enquiries: " . base_url() . "/admin/enquiries.php\r\n";
+    $headers = 'From: ' . mail_safe($site['shortName'] ?? 'Website') . ' <' . mail_safe($from) . ">\r\n"
+             . 'Reply-To: ' . mail_safe($d['email']) . "\r\n"
+             . "MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nX-Mailer: PHP\r\n";
+    try { $ok = @mail($to, $subject, $body, $headers); }
+    catch (Throwable $e) { log_error($e, 'mail'); return false; }
+    if (!$ok) error_log('[consultancy] mail() returned false for enquiry notification');
+    return $ok;
+}

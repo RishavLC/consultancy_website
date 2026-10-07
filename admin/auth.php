@@ -32,8 +32,46 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 require_once __DIR__ . '/../config/database.php';
-function admin_logged_in(): bool { return !empty($_SESSION['admin_id']); }
+require_once __DIR__ . '/../includes/functions.php';
+
+// Security headers for every admin page.
+header('X-Frame-Options: DENY');
+header('X-Content-Type-Options: nosniff');
+header('Referrer-Policy: same-origin');
+header('Cache-Control: no-store');
+
+const ADMIN_IDLE_TIMEOUT = 60 * 60 * 8; // log out after 8 hours without activity
+
+function admin_logged_in(): bool {
+    if (empty($_SESSION['admin_id'])) return false;
+    if (time() - (int)($_SESSION['last_active'] ?? 0) > ADMIN_IDLE_TIMEOUT) { admin_logout(); return false; }
+    $_SESSION['last_active'] = time();
+    return true;
+}
 function require_admin(): void { if (!admin_logged_in()) { header('Location: login.php'); exit; } }
+
+/** Fully ends the session, including the browser cookie. */
+function admin_logout(): void {
+    $_SESSION = [];
+    if (ini_get('session.use_cookies')) {
+        $p = session_get_cookie_params();
+        setcookie(session_name(), '', ['expires' => time() - 42000, 'path' => $p['path'], 'domain' => $p['domain'], 'secure' => $p['secure'], 'httponly' => true, 'samesite' => 'Lax']);
+    }
+    if (session_status() === PHP_SESSION_ACTIVE) session_destroy();
+}
+
+/** Login throttle: 5 failed attempts per IP (and 10 per username) in 15 minutes locks sign-in. */
+function login_locked(string $username): bool {
+    return rate_limit_blocked('login_ip', client_ip(), 5, 900) || rate_limit_blocked('login_user', strtolower($username), 10, 900);
+}
+function login_failed(string $username): void {
+    rate_limit_hit('login_ip', client_ip(), 1000, 900);
+    rate_limit_hit('login_user', strtolower($username), 1000, 900);
+}
+function login_succeeded(string $username): void {
+    rate_limit_clear('login_ip', client_ip());
+    rate_limit_clear('login_user', strtolower($username));
+}
 
 /** Simple per-session CSRF token for state-changing admin forms/links. */
 function csrf_token(): string {
@@ -43,6 +81,7 @@ function csrf_token(): string {
     return $_SESSION['csrf_token'];
 }
 function csrf_check(): bool {
-    $token = $_POST['csrf_token'] ?? $_GET['csrf_token'] ?? null;
+    // Tokens are accepted from POST bodies only (never from URLs, where they leak into logs/history).
+    $token = $_POST['csrf_token'] ?? null;
     return $token !== null && isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }

@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__.'/auth.php'; require_admin(); $pdo=db();
-$type=$_GET['type']??'services'; $allowed=['services','projects','gallery','team','testimonials']; if(!in_array($type,$allowed,true)) exit('Invalid section');
+$type=$_GET['type']??'services'; $allowed=['services','projects','gallery','team','testimonials','stats','workflow','milestones','values','hours']; if(!in_array($type,$allowed,true)) exit('Invalid section');
 
 /**
  * Every section is described here in plain language: what the field is
@@ -67,10 +67,60 @@ $cfg=[
     'blurb'=>'Client quotes shown on the homepage.',
     'fields'=>[
         'name'=>['label'=>'Client Name','type'=>'text'],
-        'project'=>['label'=>'Related Project','type'=>'text','hint'=>'Optional — which project this quote is about.'],
+        'project'=>['label'=>'Related Project','type'=>'text','optional'=>true,'hint'=>'Optional — which project this quote is about.'],
         'quote'=>['label'=>'Quote','type'=>'textarea'],
         'sort_order'=>['label'=>'Display Order','type'=>'number','hint'=>'Lower numbers appear first.'],
         'is_active'=>['label'=>'Show on website','type'=>'checkbox'],
+    ],
+],
+'stats'=>[
+    'table'=>'site_stats','title'=>'Key Numbers','singular'=>'Key Number','label'=>'label',
+    'blurb'=>'The big numbers shown on the homepage (e.g. "120+" Projects Completed). The first three also appear in the top banner.',
+    'fields'=>[
+        'value'=>['label'=>'Number / Value','type'=>'text','hint'=>'What is displayed large, e.g. 120+ or 15 yrs.'],
+        'label'=>['label'=>'Label','type'=>'text','hint'=>'Short text under the number, e.g. Projects Completed.'],
+        'sort_order'=>['label'=>'Display Order','type'=>'number','hint'=>'Lower numbers appear first.'],
+        'is_active'=>['label'=>'Show on website','type'=>'checkbox'],
+    ],
+],
+'workflow'=>[
+    'table'=>'workflow_steps','title'=>'How We Work Steps','singular'=>'Step','label'=>'title',
+    'blurb'=>'The numbered process steps shown on the homepage.',
+    'fields'=>[
+        'step'=>['label'=>'Step Number','type'=>'text','hint'=>'Shown in the circle, e.g. 01.'],
+        'title'=>['label'=>'Step Title','type'=>'text'],
+        'description'=>['label'=>'Description','type'=>'textarea','hint'=>'One or two sentences.'],
+        'sort_order'=>['label'=>'Display Order','type'=>'number','hint'=>'Lower numbers appear first.'],
+        'is_active'=>['label'=>'Show on website','type'=>'checkbox'],
+    ],
+],
+'milestones'=>[
+    'table'=>'milestones','title'=>'Company Timeline','singular'=>'Milestone','label'=>'year',
+    'blurb'=>'The company history timeline on the About page.',
+    'fields'=>[
+        'year'=>['label'=>'Year','type'=>'text','hint'=>'e.g. 2015 or 2019-2020.'],
+        'text'=>['label'=>'What happened','type'=>'textarea','hint'=>'One sentence.'],
+        'sort_order'=>['label'=>'Display Order','type'=>'number','hint'=>'Lower numbers appear first (oldest first).'],
+        'is_active'=>['label'=>'Show on website','type'=>'checkbox'],
+    ],
+],
+'values'=>[
+    'table'=>'company_values','title'=>'Company Values','singular'=>'Value','label'=>'title',
+    'blurb'=>'The values/principles shown on the About page.',
+    'fields'=>[
+        'title'=>['label'=>'Value Name','type'=>'text'],
+        'text'=>['label'=>'Description','type'=>'textarea','hint'=>'One or two sentences.'],
+        'sort_order'=>['label'=>'Display Order','type'=>'number','hint'=>'Lower numbers appear first.'],
+        'is_active'=>['label'=>'Show on website','type'=>'checkbox'],
+    ],
+],
+'hours'=>[
+    'table'=>'office_hours','title'=>'Office Hours','singular'=>'Day','label'=>'day_name','order'=>'day_order',
+    'blurb'=>'Opening hours shown on the Contact page. One row per day, e.g. Sunday = 10:00 AM – 5:00 PM, or Saturday = Closed.',
+    'fields'=>[
+        'day_name'=>['label'=>'Day','type'=>'select','options'=>['Sunday'=>'Sunday','Monday'=>'Monday','Tuesday'=>'Tuesday','Wednesday'=>'Wednesday','Thursday'=>'Thursday','Friday'=>'Friday','Saturday'=>'Saturday'],'hint'=>'Each day can only be listed once.'],
+        'hours'=>['label'=>'Hours','type'=>'text','hint'=>'e.g. 10:00 AM – 5:00 PM, or Closed.'],
+        'day_order'=>['label'=>'Display Order','type'=>'number','hint'=>'0 = first row shown. Use 0-6 to follow the week.'],
     ],
 ],
 ];
@@ -125,6 +175,7 @@ function clean_data($type, $fieldDefs, $post) {
         $d['year'] = (int) ($d['year'] ?? 0);
     }
     if (isset($d['sort_order'])) $d['sort_order'] = (int) $d['sort_order'];
+    if (isset($d['day_order'])) $d['day_order'] = (int) $d['day_order'];
     return $d;
 }
 
@@ -139,6 +190,7 @@ function handle_image_upload_field(?string $existingFilename): ?string {
         return $existingFilename;
     }
     $file = $_FILES['image'];
+    $existingFilename = $existingFilename ? basename($existingFilename) : null; // never trust a path from the browser
     if ($file['error'] !== UPLOAD_ERR_OK) {
         throw new RuntimeException('Photo upload failed (error code ' . $file['error'] . '). Please try again.');
     }
@@ -165,12 +217,12 @@ function handle_image_upload_field(?string $existingFilename): ?string {
     return $filename;
 }
 
-if (isset($_GET['delete'])) {
-    if (!csrf_check()) { exit('That link has expired. Go back to the list and try again.'); }
-    $id = (int) $_GET['delete'];
-    $st = $pdo->prepare("SELECT image FROM `$table` WHERE id=?"); $st->execute([$id]); $row = $st->fetch();
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
+    if (!csrf_check()) { http_response_code(400); exit('That request has expired. Go back, reload the page and try again.'); }
+    $id = (int) $_POST['delete'];
+    $st = $pdo->prepare("SELECT * FROM `$table` WHERE id=?"); $st->execute([$id]); $row = $st->fetch();
     if ($row && !empty($row['image'])) {
-        $imgPath = __DIR__ . '/../assets/images/uploads/' . $row['image'];
+        $imgPath = __DIR__ . '/../assets/images/uploads/' . basename($row['image']);
         if (is_file($imgPath)) { @unlink($imgPath); }
     }
     $pdo->prepare("DELETE FROM `$table` WHERE id=?")->execute([$id]);
@@ -182,7 +234,7 @@ if (isset($_GET['edit'])) {
     $st = $pdo->prepare("SELECT * FROM `$table` WHERE id=?"); $st->execute([(int) $_GET['edit']]); $editing = $st->fetch();
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['delete'])) {
     if (!csrf_check()) {
         $uploadError = 'This page had been open a while, so we couldn\'t confirm the request. Please try saving again.';
     } else {
@@ -197,8 +249,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        if ($type === 'services' && $uploadError === '') {
-            $d['slug'] = unique_slug($pdo, make_slug($d['title'] ?: 'service'), $id);
+        // Slug is created once and never changed, so links like services.php#structural-design keep working after renames.
+        if ($type === 'services' && $uploadError === '' && !$id) {
+            $d['slug'] = unique_slug($pdo, make_slug($d['title'] ?: 'service'), 0);
         }
 
         if ($uploadError === '') {
@@ -214,13 +267,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 header('Location: content.php?type=' . urlencode($type) . '&saved=1'); exit;
             } catch (PDOException $ex) {
-                $uploadError = 'Could not save — please check the fields and try again. (Technical detail: ' . $ex->getMessage() . ')';
+                log_error($ex, 'admin save ' . $table);
+                $uploadError = ($ex->getCode() === '23000') ? 'That item already exists (for example, this day is already listed). Edit the existing one instead.' : 'Could not save — please check the fields and try again.' . (APP_DEBUG ? ' (' . $ex->getMessage() . ')' : '');
             }
         }
     }
 }
 
-$items = $pdo->query("SELECT * FROM `$table` ORDER BY sort_order,id DESC")->fetchAll();
+$orderCol = $c['order'] ?? 'sort_order';
+$items = $pdo->query("SELECT * FROM `$table` ORDER BY `$orderCol`,id DESC")->fetchAll();
 
 function form_value($editing, $k, $type) {
     $v = $editing[$k] ?? '';
@@ -235,7 +290,7 @@ function form_value($editing, $k, $type) {
 }
 ?>
 <!doctype html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -258,7 +313,7 @@ function form_value($editing, $k, $type) {
 <form class="form" method="post" enctype="multipart/form-data">
 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>">
 <input type="hidden" name="id" value="<?php echo (int) ($editing['id'] ?? 0); ?>">
-<h3 style="margin-top:0;"><?php echo $editing ? 'Editing: ' . htmlspecialchars($editing['title'] ?? $editing['name'] ?? '') : 'Add New'; ?></h3>
+<h3 style="margin-top:0;"><?php echo $editing ? 'Editing: ' . htmlspecialchars($editing[$c['label'] ?? ''] ?? $editing['title'] ?? $editing['name'] ?? '') : 'Add New'; ?></h3>
 <div class="grid">
 <?php foreach ($c['fields'] as $k => $def): ?>
 <div>
@@ -294,16 +349,16 @@ function form_value($editing, $k, $type) {
 <?php else: ?>
     <label><?php echo htmlspecialchars($def['label']); ?></label>
     <?php if ($def['type'] === 'textarea'): ?>
-    <textarea name="<?php echo $k; ?>" required><?php echo htmlspecialchars(form_value($editing, $k, $type)); ?></textarea>
+    <textarea name="<?php echo $k; ?>" <?php echo empty($def['optional']) ? 'required' : ''; ?>><?php echo htmlspecialchars(form_value($editing, $k, $type)); ?></textarea>
     <?php else: ?>
-    <input name="<?php echo $k; ?>" value="<?php echo htmlspecialchars(form_value($editing, $k, $type)); ?>" <?php echo $def['type'] === 'number' ? 'type="number"' : ''; ?> required>
+    <input name="<?php echo $k; ?>" value="<?php echo htmlspecialchars(form_value($editing, $k, $type)); ?>" <?php echo $def['type'] === 'number' ? 'type="number"' : ''; ?> <?php echo empty($def['optional']) ? 'required' : ''; ?>>
     <?php endif; ?>
     <?php if (!empty($def['hint'])): ?><div class="hint"><?php echo htmlspecialchars($def['hint']); ?></div><?php endif; ?>
 <?php endif; ?>
 </div>
 <?php endforeach; ?>
 </div>
-<button name="save"><?php echo $editing ? 'Save Changes' : 'Add ' . rtrim(htmlspecialchars($c['title']), 's'); ?></button>
+<button name="save"><?php echo $editing ? 'Save Changes' : 'Add ' . htmlspecialchars($c['singular'] ?? rtrim($c['title'], 's')); ?></button>
 <?php if ($editing): ?><a class="btn outline" href="content.php?type=<?php echo $type; ?>">Cancel</a><?php endif; ?>
 </form>
 
@@ -322,11 +377,11 @@ function form_value($editing, $k, $type) {
     ?>
     <img class="item-thumb" src="<?php echo $thumbSrc; ?>" alt="">
 <?php endif; ?>
-<b><?php echo htmlspecialchars($it['title'] ?? $it['name'] ?? 'Item #' . $it['id']); ?></b>
+<b><?php echo htmlspecialchars((string)($it[$c['label'] ?? ''] ?? $it['title'] ?? $it['name'] ?? 'Item #' . $it['id'])); ?></b>
 <?php if (isset($it['is_active']) && !$it['is_active']): ?><span class="hint" style="color:var(--a-red);">(hidden from website)</span><?php endif; ?>
 <div class="actions">
 <a class="btn outline" href="?type=<?php echo $type; ?>&edit=<?php echo $it['id']; ?>">Edit</a>
-<a class="btn danger" onclick="return confirm('Delete this? This cannot be undone.')" href="?type=<?php echo $type; ?>&delete=<?php echo $it['id']; ?>&csrf_token=<?php echo htmlspecialchars(csrf_token()); ?>">Delete</a>
+<form method="post" style="display:inline" onsubmit="return confirm('Delete this? This cannot be undone.')"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token()); ?>"><button class="btn danger" name="delete" value="<?php echo (int) $it['id']; ?>">Delete</button></form>
 </div>
 </div>
 <?php endforeach; ?>

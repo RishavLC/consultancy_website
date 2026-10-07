@@ -88,8 +88,16 @@ document.addEventListener('DOMContentLoaded', function () {
       lbImg.alt = item.getAttribute('data-title') || '';
       lbCap.textContent = item.getAttribute('data-title') || '';
       lightbox.classList.add('open');
+      lightbox.setAttribute('role', 'dialog'); lightbox.setAttribute('aria-modal', 'true'); lightbox.setAttribute('aria-label', 'Image viewer');
+      if (!lastFocus) lastFocus = document.activeElement;
+      var closeBtn = lightbox.querySelector('.lb-close'); if (closeBtn) closeBtn.focus();
     }
-    function closeLightbox() { lightbox.classList.remove('open'); }
+    var lastFocus = null;
+    function closeLightbox() {
+      lightbox.classList.remove('open');
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+      lastFocus = null;
+    }
     function showRelative(delta) {
       var visibleItems = galleryItems.filter(function (it) { return it.style.display !== 'none'; });
       var pos = visibleItems.indexOf(galleryItems[currentIndex]);
@@ -111,6 +119,12 @@ document.addEventListener('DOMContentLoaded', function () {
     document.addEventListener('keydown', function (e) {
       if (!lightbox.classList.contains('open')) return;
       if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'Tab') {   // keep keyboard focus inside the open lightbox
+        var f = lightbox.querySelectorAll('button'); if (!f.length) return;
+        var first = f[0], last = f[f.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
       if (e.key === 'ArrowLeft') showRelative(-1);
       if (e.key === 'ArrowRight') showRelative(1);
     });
@@ -119,12 +133,18 @@ document.addEventListener('DOMContentLoaded', function () {
   /* ---------- Contact form: lightweight client-side hint (server validates too) ---------- */
   var contactForm = document.getElementById('contactForm');
   if (contactForm) {
-    contactForm.addEventListener('submit', function () {
-      var submitBtn = contactForm.querySelector('button[type="submit"]');
-      if (submitBtn) {
-        submitBtn.setAttribute('disabled', 'disabled');
-        submitBtn.textContent = 'Sending…';
-      }
+    var submitBtn = contactForm.querySelector('button[type="submit"]');
+    var originalLabel = submitBtn ? submitBtn.innerHTML : '';
+    var sending = false;
+    contactForm.addEventListener('submit', function (e) {
+      if (sending) { e.preventDefault(); return; }   // block double-clicks without disabling the button
+      sending = true;
+      if (submitBtn) { submitBtn.setAttribute('aria-busy', 'true'); submitBtn.textContent = 'Sending…'; }
+    });
+    // Restore the button if the visitor comes back with the browser Back button.
+    window.addEventListener('pageshow', function () {
+      sending = false;
+      if (submitBtn) { submitBtn.removeAttribute('aria-busy'); submitBtn.innerHTML = originalLabel; }
     });
   }
 

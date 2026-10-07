@@ -1,4 +1,5 @@
 <?php require_once __DIR__ . '/data.php'; require_once __DIR__ . '/functions.php'; ?>
+</main>
     <footer class="site-footer">
         <div class="footer-band container">
             <div class="footer-col footer-brand">
@@ -11,9 +12,9 @@
                 </a>
                 <p>Structural, geotechnical &amp; infrastructure engineering, built on-site reporting and code-first design since <?php echo (int)$site['founded']; ?>.</p>
                 <div class="social-row">
-                    <a href="#" aria-label="Facebook"><?php icon('facebook'); ?></a>
-                    <a href="#" aria-label="Instagram"><?php icon('instagram'); ?></a>
-                    <a href="#" aria-label="LinkedIn"><?php icon('linkedin'); ?></a>
+                    <?php foreach (['facebook'=>'Facebook','instagram'=>'Instagram','linkedin'=>'LinkedIn'] as $net => $label): if ($site[$net] === '') continue; ?>
+                    <a href="<?php echo e($site[$net]); ?>" aria-label="<?php echo e($label); ?>" target="_blank" rel="noopener noreferrer"><?php icon($net); ?></a>
+                    <?php endforeach; ?>
                 </div>
             </div>
 

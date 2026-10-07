@@ -1,0 +1,8 @@
+config/local.php
+data/*.json
+data/*.key
+data/*.lock
+data/sessions/sess_*
+assets/images/uploads/*
+!assets/images/uploads/.htaccess
+!assets/images/uploads/.gitkeep

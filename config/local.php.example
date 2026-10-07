@@ -1,0 +1,10 @@
+<?php
+// Copy this file to local.php and fill in your real values. Never commit local.php.
+define('DB_HOST', '127.0.0.1');
+define('DB_NAME', 'consultancy_db');
+define('DB_USER', 'consultancy_user');   // a dedicated user, NOT root
+define('DB_PASS', 'a-long-random-password');
+define('APP_TIMEZONE', 'Asia/Kathmandu');
+define('APP_DEBUG', false);
+// Optional: where enquiry notification emails are sent from (must be an address on your domain)
+// define('MAIL_FROM', 'no-reply@yourdomain.com');

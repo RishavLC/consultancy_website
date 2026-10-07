@@ -1,7 +1,8 @@
 <?php
-$pageTitle = 'Our Work — Strata & Beam Engineering';
-$pageMeta  = 'Structural, residential, infrastructure and retrofit projects completed by Strata & Beam Engineering.';
-require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/includes/data.php';
+require_once __DIR__ . '/includes/functions.php';
+$pageTitle = 'Our Work — ' . $site['name'];
+$pageMeta  = 'Structural, residential, infrastructure and retrofit projects completed by ' . $site['name'] . '.';
 
 // --- Dynamic single-project view driven entirely by the ?id= query param ---
 $activeProject = null;
@@ -10,7 +11,18 @@ if (isset($_GET['id'])) {
     foreach ($projects as $p) {
         if ($p['id'] === $requestedId) { $activeProject = $p; break; }
     }
+    if (!$activeProject) {
+        http_response_code(404);
+        $noindex = true;
+        $pageTitle = 'Project not found — ' . $site['name'];
+    } else {
+        $pageTitle = $activeProject['title'] . ' — ' . $site['name'];
+        $pageMeta  = mb_substr($activeProject['summary'], 0, 160);
+        $ogImage   = base_url() . '/' . image_url($activeProject['image'], 'strata-beam-proj' . $activeProject['id'], '900/680');
+        if (strpos($ogImage, 'https://picsum') !== false) $ogImage = '';
+    }
 }
+require_once __DIR__ . '/includes/header.php';
 ?>
 
 <section class="page-banner">

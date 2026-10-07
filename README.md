@@ -1,44 +1,40 @@
-# Consultancy Website - PHP + MySQL Dynamic Version
+# Consultancy Website — PHP + MySQL
 
-## XAMPP setup
+## 1. Local setup (XAMPP)
 1. Extract this folder into `C:\xampp\htdocs\`.
-2. Start Apache and MySQL.
+2. Start Apache and MySQL in XAMPP.
 3. Open `http://localhost/consultancy_website/install.php` and click **Install / Seed Database**.
-4. If the admin login says invalid credentials, open `http://localhost/consultancy_website/admin/reset_admin.php` once, then use:
-   - Username: `admin`
-   - Password: `admin123`
-5. Login at `http://localhost/consultancy_website/admin/login.php`.
-6. Delete or rename `install.php` and `admin/reset_admin.php` after setup.
+4. The installer shows a **random admin password once** — copy it. The installer then deletes itself and locks.
+5. Log in at `/admin/login.php` (username `admin`) and immediately use **Change Password**.
 
-## Database
-Default XAMPP settings are used:
-- Host: `127.0.0.1`
-- Database: `consultancy_db`
-- User: `root`
-- Password: empty
+If the installer ever fails, the exact error is in the PHP error log (XAMPP: `xampp/php/logs/php_error_log`). To see errors on screen **on your own PC only**, set `APP_DEBUG` to `true` in `config/local.php`.
 
-If your MySQL credentials differ, edit `config/database.php`.
+## 2. Going live — checklist
+1. In phpMyAdmin / cPanel create a database **and a dedicated user** (not `root`) with access to only that database.
+2. Copy `config/local.php.example` to `config/local.php` and fill in the real database name, user and password. Never upload your real passwords inside `database.php`.
+3. Upload everything **except** the `.git` folder.
+4. Run `install.php` once, copy the password it shows, log in, change the password.
+5. Make sure `data/` and `assets/images/uploads/` are writable by the web server.
+6. Install an SSL certificate, then open `.htaccess` and remove the `#` in front of the HTTPS-redirect block.
+7. In **Admin → Website Settings** enter the real phone, email (new enquiries are emailed here), address and social links.
+8. Replace the placeholder content (see below) and test: contact form, a photo upload, every page on a phone.
+9. Set up daily database backups plus a copy of `assets/images/uploads/`.
+10. Submit `https://YOUR-DOMAIN/sitemap.php` in Google Search Console.
 
-## Using the Admin Panel (for non-technical staff)
+Notes: this needs **Apache** (it relies on `.htaccess`). On Nginx you must add equivalent rules that deny access to `/data`, `/config`, `/includes`, and dot-files. Enquiry emails use PHP `mail()`; if your host blocks it, set `MAIL_FROM` in `config/local.php` to an address on your domain, or ask the host to enable mail. Enquiries are always saved in **Admin → Enquiries** even if email fails.
 
-Go to `http://localhost/consultancy_website/admin/` (or your live domain + `/admin/`) and log in.
+## 3. Admin panel
+Dashboard → each section has an add/edit form and a list. Sections: Services, Projects, Gallery, Team, Testimonials, **Key Numbers, How We Work steps, Company Timeline, Company Values, Office Hours** (these five were previously only editable through SQL), Enquiries, Website Settings, Change Password.
+- **Show on website** unticked = hidden, not deleted. **Display Order**: lower numbers first.
+- Photos: upload JPG/PNG/WEBP/GIF up to 5 MB. Until uploaded, a placeholder photo appears.
 
-- **Dashboard** — quick overview and links to every section.
-- **Services / Projects / Gallery / Team Members / Testimonials** — each has a form to add new items and a list below it to edit or delete existing ones. Every field has a plain-English label and a short grey hint underneath explaining what it does and where it shows up on the website.
-- **Photos** — click "Choose File" and upload a JPG/PNG/WEBP/GIF directly; there's no need to know a filename or use FTP. Until a real photo is uploaded, a placeholder image is shown automatically.
-- **Show on website** checkbox — uncheck this to hide an item without deleting it (useful for drafts or seasonal content).
-- **Display Order** — a number; lower numbers show first. Doesn't need to be sequential (0, 5, 10 works fine and leaves room to insert things later).
-- **Enquiries** — every contact form submission lands here, with buttons to mark it Read / Replied / Closed.
-- **Settings** — company name, phone, email, and address shown across the site.
+## 4. Still to do (content — can't be automated)
+- Replace the `picsum.photos` placeholder images (hero mosaic, page banners, About office photo) with real photos. Search the PHP files for `picsum`.
+- Replace the demo services/projects/team/testimonials/stats with real ones (check claims such as "since 2008").
+- Resize photos before uploading (about 1600 px wide is plenty) to keep pages fast.
 
-Changes save immediately and go live on the website right away — no publish step.
-
-## What was fixed in this pass
-Every fix below was verified against a real PHP 8.3 + MySQL 8 environment (fresh install → every public page → full admin workflow → clean up), not just read in the code.
-
-1. **`services.php` and `index.php` crashed with a fatal error** — the database query for services used different column names than the page templates expected. Fixed.
-2. **Uploaded photos never appeared on the website** — Projects/Gallery/Team photo fields were plain text boxes requiring a typed filename, and even then the public pages never used that field. Added real "Choose File" upload buttons and wired every public page to actually display the uploaded photo (falling back to a placeholder until one is uploaded).
-3. **Admin sessions could log you out unexpectedly** — session handling now uses its own folder inside the project (`data/sessions/`) and its own cookie name, instead of depending on the server's `php.ini` defaults, which vary between hosting setups and are the most common cause of "the admin panel keeps logging me out."
-4. **Saving with a duplicate title crashed the whole page with a raw technical error** — now shows a friendly message and, for Services, automatically makes the web address unique (e.g. `structural-design-2`) instead of failing.
-5. **Added CSRF protection** to every save/delete action in the admin panel, so a malicious link or embedded image on another site can't trigger a change on your behalf while you're logged in.
-6. **Simplified every admin form** — removed technical fields (like typing a URL "slug" by hand), replaced free-text category/icon fields with dropdowns (so a typo can't silently break the filter buttons on the live site), and added a plain-English description under every field.
+## 5. What changed in this security/quality pass
+**Security:** installer locks itself, generates a random password and never resets an existing admin; `reset_admin.php` removed; DB credentials moved to git-ignored `config/local.php`; login rate-limiting (5 failures / 15 min); idle session timeout; logout now POST + clears cookie; all delete/status actions are POST with CSRF (tokens no longer accepted from URLs); change-password page + warning while the default password is in use; raw database errors no longer shown; upload folder blocked from running PHP; upload path-traversal hole closed; `.git`, `.sql`, `.md`, key and log files blocked; security headers; deny rules work on Apache 2.2 and 2.4.
+**Contact form:** fixed bug where disabling the button could cause the submission to be silently ignored; honeypot + signed time token + 5-per-hour-per-IP limit; server checks the service value; redirect after submit (no duplicate on refresh); email notification; friendly error messages.
+**Functionality:** Nepal timezone (office-hours "today" now correct); service anchor links no longer change when renamed; optional testimonial field is truly optional; friendly duplicate-entry error; settings page with clear labels, validation, social links and map text; footer social icons only show when a link is set; missing project IDs return a real 404.
+**SEO/accessibility:** canonical + Open Graph tags, favicon, JSON-LD business data, per-project titles/descriptions, `sitemap.php`, `robots.txt` (generated), skip-link, `<main>`, reduced-motion support, lightbox focus handling.

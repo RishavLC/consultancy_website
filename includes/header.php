@@ -2,6 +2,13 @@
 require_once __DIR__ . '/data.php';
 require_once __DIR__ . '/functions.php';
 $pageTitle = $pageTitle ?? $site['name'];
+$pageMetaText = $pageMeta ?? 'Structural, geotechnical and infrastructure engineering based in Kathmandu.';
+$canonical = base_url() . '/' . ltrim(basename($_SERVER['SCRIPT_NAME']) === 'index.php' ? '' : basename($_SERVER['SCRIPT_NAME']), '/');
+if (basename($_SERVER['SCRIPT_NAME']) === 'our-work.php' && !empty($activeProject)) $canonical .= '?id=' . (int)$activeProject['id'];
+$ogImage = $ogImage ?? '';
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: SAMEORIGIN');
+header('Referrer-Policy: strict-origin-when-cross-origin');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -9,13 +16,38 @@ $pageTitle = $pageTitle ?? $site['name'];
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?php echo e($pageTitle); ?></title>
-<meta name="description" content="<?php echo e($pageMeta ?? 'Structural, geotechnical and infrastructure engineering based in Kathmandu.'); ?>">
+<meta name="description" content="<?php echo e($pageMetaText); ?>">
+<link rel="canonical" href="<?php echo e($canonical); ?>">
+<link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
+<meta name="theme-color" content="#2b1d14">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="<?php echo e($site['name']); ?>">
+<meta property="og:title" content="<?php echo e($pageTitle); ?>">
+<meta property="og:description" content="<?php echo e($pageMetaText); ?>">
+<meta property="og:url" content="<?php echo e($canonical); ?>">
+<?php if ($ogImage): ?><meta property="og:image" content="<?php echo e($ogImage); ?>">
+<meta name="twitter:card" content="summary_large_image"><?php else: ?><meta name="twitter:card" content="summary"><?php endif; ?>
+<?php if (!empty($noindex)): ?><meta name="robots" content="noindex, follow"><?php endif; ?>
+<script type="application/ld+json"><?php
+echo json_encode([
+    '@context' => 'https://schema.org',
+    '@type' => 'ProfessionalService',
+    'name' => $site['name'],
+    'url' => base_url() . '/',
+    'telephone' => $site['phone'],
+    'email' => $site['email'],
+    'foundingDate' => (string)$site['founded'],
+    'address' => ['@type' => 'PostalAddress', 'streetAddress' => $site['address'], 'addressCountry' => 'NP'],
+    'sameAs' => array_values(array_filter([$site['facebook'], $site['instagram'], $site['linkedin']])),
+], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG);
+?></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Karla:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to main content</a>
 
 <div class="site-wrap">
 
@@ -43,3 +75,4 @@ $pageTitle = $pageTitle ?? $site['name'];
         </button>
     </div>
 </header>
+<main id="main">
