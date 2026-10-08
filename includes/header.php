@@ -4,7 +4,7 @@ require_once __DIR__ . '/functions.php';
 $pageTitle = $pageTitle ?? $site['name'];
 $pageMetaText = $pageMeta ?? 'Structural, geotechnical and infrastructure engineering based in Kathmandu.';
 $canonical = base_url() . '/' . ltrim(basename($_SERVER['SCRIPT_NAME']) === 'index.php' ? '' : basename($_SERVER['SCRIPT_NAME']), '/');
-if (basename($_SERVER['SCRIPT_NAME']) === 'our-work.php' && !empty($activeProject)) $canonical .= '?id=' . (int)$activeProject['id'];
+if (basename($_SERVER['SCRIPT_NAME']) === 'work.php' && !empty($activeProject)) $canonical .= '?id=' . (int)$activeProject['id'];
 $ogImage = $ogImage ?? '';
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: SAMEORIGIN');
@@ -65,7 +65,7 @@ echo json_encode([
             <a href="index.php" class="<?php echo nav_class('index.php'); ?>">Home</a>
             <a href="about.php" class="<?php echo nav_class('about.php'); ?>">About Us</a>
             <a href="services.php" class="<?php echo nav_class('services.php'); ?>">Our Services</a>
-            <a href="our-work.php" class="<?php echo nav_class('our-work.php'); ?>">Our Work</a>
+            <a href="work.php" class="<?php echo nav_class('work.php'); ?>">Our Work</a>
             <a href="gallery.php" class="<?php echo nav_class('gallery.php'); ?>">Gallery</a>
             <a href="contact.php" class="<?php echo nav_class('contact.php'); ?> nav-cta">Contact Us</a>
         </nav>

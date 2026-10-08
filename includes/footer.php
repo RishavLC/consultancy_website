@@ -24,7 +24,7 @@
                     <li><a href="index.php">Home</a></li>
                     <li><a href="about.php">About Us</a></li>
                     <li><a href="services.php">Our Services</a></li>
-                    <li><a href="our-work.php">Our Work</a></li>
+                    <li><a href="work.php">Our Work</a></li>
                     <li><a href="gallery.php">Gallery</a></li>
                     <li><a href="contact.php">Contact Us</a></li>
                 </ul>

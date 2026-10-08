@@ -468,3 +468,12 @@ main{display:block}
   *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}
   .reveal{opacity:1 !important;transform:none !important}
 }
+
+/* ---------- Admin-managed home banner ---------- */
+.hero-has-banner{
+  background:linear-gradient(90deg,rgba(43,29,20,.88) 0%,rgba(43,29,20,.62) 55%,rgba(43,29,20,.35) 100%), var(--hero-img) center/cover no-repeat;
+}
+.hero-has-banner .hero-inner{ grid-template-columns:minmax(0,760px); min-height:560px; align-items:center; }
+.hero-has-banner .hero-copy{ padding-block:70px; }
+.welcome-intro .section-lede{ max-width:760px; margin-inline:auto; }
+@media (max-width:768px){ .hero-has-banner .hero-inner{ min-height:0; } }

@@ -4,15 +4,24 @@ $pageMeta  = 'Structural design, geotechnical investigation, site supervision an
 require_once __DIR__ . '/includes/header.php';
 ?>
 
-<section class="hero">
+<?php $bannerImg = $banner ? 'assets/images/uploads/' . rawurlencode($banner['image']) : ''; ?>
+<section class="hero<?php echo $banner ? ' hero-has-banner' : ''; ?>"<?php if ($banner): ?> style="--hero-img:url('<?php echo e($bannerImg); ?>')"<?php endif; ?>>
     <div class="container hero-inner">
         <div class="hero-copy">
             <span class="eyebrow">Structural &amp; Civil Engineering</span>
+            <?php if ($banner && trim($banner['title']) !== ''): ?>
+            <h1><?php echo e($banner['title']); ?></h1>
+            <?php else: ?>
             <h1>We engineer ground you<br>can actually <em>build on</em>.</h1>
+            <?php endif; ?>
+            <?php if ($banner && trim($banner['subtitle']) !== ''): ?>
+            <p><?php echo e($banner['subtitle']); ?></p>
+            <?php else: ?>
             <p>Structural design, geotechnical investigation and site supervision for buildings and infrastructure across Nepal — engineered to code, reported in plain numbers.</p>
+            <?php endif; ?>
             <div class="hero-cta">
                 <a href="contact.php" class="btn btn-primary">Start a Project <?php icon('arrow'); ?></a>
-                <a href="our-work.php" class="btn btn-light">View Our Work</a>
+                <a href="work.php" class="btn btn-light">View Our Work</a>
             </div>
             <div class="hero-stats">
                 <?php foreach (array_slice($stats, 0, 3) as $s): ?>
@@ -21,6 +30,7 @@ require_once __DIR__ . '/includes/header.php';
             </div>
         </div>
 
+        <?php if (!$banner): ?>
         <div class="hero-mosaic">
             <div class="tile t1"><img src="https://picsum.photos/seed/strata-beam-1/700/700" alt="Structural steel frame under construction"><span class="tag">Structural Frame</span></div>
             <div class="tile t2"><img src="https://picsum.photos/seed/strata-beam-2/500/320" alt="Site engineer reviewing blueprints on site"><span class="tag">On-Site Review</span></div>
@@ -28,6 +38,18 @@ require_once __DIR__ . '/includes/header.php';
             <div class="tile t4"><img src="https://picsum.photos/seed/strata-beam-4/300/620" alt="Completed commercial building exterior"><span class="tag">Completed Build</span></div>
             <div class="tile t5"><img src="https://picsum.photos/seed/strata-beam-5/460/380" alt="Road and drainage infrastructure survey"><span class="tag">Infrastructure</span></div>
             <div class="tile t6"><img src="https://picsum.photos/seed/strata-beam-6/900/280" alt="Geotechnical soil boring test on site"><span class="tag">Geotechnical</span></div>
+        </div>
+        <?php endif; ?>
+    </div>
+</section>
+
+<section class="section section-tight welcome-intro">
+    <div class="container">
+        <div class="section-head center" style="margin-bottom:0;">
+            <div class="dim-line"><span>About Us</span></div>
+            <h2><?php echo e($site['welcome']); ?></h2>
+            <p class="section-lede"><?php echo e($site['intro']); ?></p>
+            <p style="margin-top:18px;"><a href="about.php" class="btn btn-outline">More About Us</a></p>
         </div>
     </div>
 </section>
@@ -87,13 +109,13 @@ require_once __DIR__ . '/includes/header.php';
         </div>
         <div class="grid-3">
             <?php foreach (array_slice($projects, 0, 3) as $p): ?>
-            <a href="our-work.php?id=<?php echo (int)$p['id']; ?>" class="project-card reveal">
+            <a href="work.php?id=<?php echo (int)$p['id']; ?>" class="project-card reveal">
                 <div class="project-thumb">
                     <img src="<?php echo e(image_url($p['image'], 'strata-beam-proj' . $p['id'], '600/440')); ?>" alt="<?php echo e($p['title']); ?>">
                     <span class="cat-tag"><?php echo e(ucfirst($p['category'])); ?></span>
                 </div>
                 <div class="project-body">
-                    <div class="meta"><?php echo e($p['location']); ?> · <?php echo e((string)$p['year']); ?></div>
+                    <div class="meta"><?php echo e($p['location']); ?> · <?php echo e(project_date_label($p)); ?></div>
                     <h3><?php echo e($p['title']); ?></h3>
                     <p><?php echo e($p['summary']); ?></p>
                     <span class="card-link">View Project <?php icon('arrow'); ?></span>
@@ -102,7 +124,7 @@ require_once __DIR__ . '/includes/header.php';
             <?php endforeach; ?>
         </div>
         <div style="text-align:center;margin-top:40px;">
-            <a href="our-work.php" class="btn btn-outline">See All Projects</a>
+            <a href="work.php" class="btn btn-outline">See All Projects</a>
         </div>
     </div>
 </section>
@@ -122,6 +144,21 @@ require_once __DIR__ . '/includes/header.php';
             </div>
             <?php endforeach; ?>
         </div>
+    </div>
+</section>
+
+<section class="section section-tight contact-preview">
+    <div class="container">
+        <div class="section-head center">
+            <div class="dim-line"><span>Contact</span></div>
+            <h2>Talk to an engineer</h2>
+        </div>
+        <div class="grid-3">
+            <div class="service-card"><h3>Visit</h3><p><?php echo e($site['address']); ?></p></div>
+            <div class="service-card"><h3>Call</h3><p><a href="tel:<?php echo e(preg_replace('/[^0-9+]/', '', $site['phone'])); ?>"><?php echo e($site['phone']); ?></a></p></div>
+            <div class="service-card"><h3>Email</h3><p><a href="mailto:<?php echo e($site['email']); ?>"><?php echo e($site['email']); ?></a></p></div>
+        </div>
+        <p style="text-align:center;margin-top:30px;"><a href="contact.php" class="btn btn-primary">Send an Enquiry <?php icon('arrow'); ?></a></p>
     </div>
 </section>
 

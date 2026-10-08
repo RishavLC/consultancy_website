@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__.'/auth.php';
-if (admin_logged_in()) { header('Location: index.php'); exit; }
+if (admin_logged_in()) { header('Location: dashboard.php'); exit; }
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $u = trim((string)($_POST['username'] ?? ''));
@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (password_needs_rehash($hash, PASSWORD_DEFAULT)) {
                     db()->prepare('UPDATE admins SET password_hash=? WHERE id=?')->execute([password_hash($p, PASSWORD_DEFAULT), $a['id']]);
                 }
-                header('Location: index.php'); exit;
+                header('Location: dashboard.php'); exit;
             }
             login_failed($u);
             $error = 'Invalid username or password.';

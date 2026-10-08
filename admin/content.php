@@ -1,5 +1,6 @@
 <?php
-require_once __DIR__.'/auth.php'; require_admin(); $pdo=db();
+require_once __DIR__.'/auth.php';
+require_once __DIR__.'/upload_helper.php'; require_admin(); $pdo=db();
 $type=$_GET['type']??'services'; $allowed=['services','projects','gallery','team','testimonials','stats','workflow','milestones','values','hours']; if(!in_array($type,$allowed,true)) exit('Invalid section');
 
 /**
@@ -28,7 +29,8 @@ $cfg=[
     'fields'=>[
         'title'=>['label'=>'Project Name','type'=>'text'],
         'category'=>['label'=>'Category','type'=>'select','options'=>['commercial'=>'Commercial','residential'=>'Residential','infrastructure'=>'Infrastructure','retrofit'=>'Retrofit'],'hint'=>'Used for the filter buttons on the Our Work page.'],
-        'year'=>['label'=>'Year','type'=>'number'],
+        'year'=>['label'=>'Year','type'=>'number','hint'=>'Used if you leave the exact completion date empty.'],
+        'completed_date'=>['label'=>'Completion Date','type'=>'date','optional'=>true,'hint'=>'Optional — the exact date the project was completed. If set, the year is filled in automatically.'],
         'location'=>['label'=>'Location','type'=>'text'],
         'summary'=>['label'=>'Short Summary','type'=>'textarea','hint'=>'One sentence, shown on the project card.'],
         'detail'=>['label'=>'Full Detail','type'=>'textarea','hint'=>'The longer write-up shown on the project\'s own page.'],
@@ -173,6 +175,13 @@ function clean_data($type, $fieldDefs, $post) {
         }
         $d['stats'] = json_encode($stats, JSON_UNESCAPED_UNICODE);
         $d['year'] = (int) ($d['year'] ?? 0);
+        // Completion date: keep only a real calendar date, otherwise store NULL; it also decides the year.
+        $cd = $d['completed_date'] ?? '';
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $cd, $m) && checkdate((int)$m[2], (int)$m[3], (int)$m[1])) {
+            $d['year'] = (int)$m[1];
+        } else {
+            $d['completed_date'] = null;
+        }
     }
     if (isset($d['sort_order'])) $d['sort_order'] = (int) $d['sort_order'];
     if (isset($d['day_order'])) $d['day_order'] = (int) $d['day_order'];
@@ -189,31 +198,9 @@ function handle_image_upload_field(?string $existingFilename): ?string {
     if (empty($_FILES['image']) || $_FILES['image']['error'] === UPLOAD_ERR_NO_FILE) {
         return $existingFilename;
     }
-    $file = $_FILES['image'];
     $existingFilename = $existingFilename ? basename($existingFilename) : null; // never trust a path from the browser
-    if ($file['error'] !== UPLOAD_ERR_OK) {
-        throw new RuntimeException('Photo upload failed (error code ' . $file['error'] . '). Please try again.');
-    }
-    if ($file['size'] > 5 * 1024 * 1024) {
-        throw new RuntimeException('That photo is too large — please use something under 5MB.');
-    }
-    $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', 'image/gif' => 'gif'];
-    $finfo = finfo_open(FILEINFO_MIME_TYPE);
-    $mime = finfo_file($finfo, $file['tmp_name']);
-    finfo_close($finfo);
-    if (!isset($allowed[$mime])) {
-        throw new RuntimeException('Please upload a JPG, PNG, WEBP or GIF photo.');
-    }
-    $uploadDir = __DIR__ . '/../assets/images/uploads/';
-    if (!is_dir($uploadDir)) { mkdir($uploadDir, 0755, true); }
-    $filename = uniqid('img_', true) . '.' . $allowed[$mime];
-    if (!move_uploaded_file($file['tmp_name'], $uploadDir . $filename)) {
-        throw new RuntimeException('Could not save the uploaded photo. Check that the assets/images/uploads folder is writable.');
-    }
-    if ($existingFilename) {
-        $oldPath = $uploadDir . $existingFilename;
-        if (is_file($oldPath)) { @unlink($oldPath); }
-    }
+    $filename = save_uploaded_image($_FILES['image']);   // validates type/size, throws RuntimeException on problems
+    delete_uploaded_image($existingFilename);            // replaced photo is removed
     return $filename;
 }
 
@@ -221,10 +208,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
     if (!csrf_check()) { http_response_code(400); exit('That request has expired. Go back, reload the page and try again.'); }
     $id = (int) $_POST['delete'];
     $st = $pdo->prepare("SELECT * FROM `$table` WHERE id=?"); $st->execute([$id]); $row = $st->fetch();
-    if ($row && !empty($row['image'])) {
-        $imgPath = __DIR__ . '/../assets/images/uploads/' . basename($row['image']);
-        if (is_file($imgPath)) { @unlink($imgPath); }
-    }
+    if ($row && !empty($row['image'])) { delete_uploaded_image($row['image']); }
     $pdo->prepare("DELETE FROM `$table` WHERE id=?")->execute([$id]);
     header('Location: content.php?type=' . urlencode($type) . '&deleted=1'); exit;
 }
@@ -235,7 +219,9 @@ if (isset($_GET['edit'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['delete'])) {
-    if (!csrf_check()) {
+    if (post_too_big()) {
+        $uploadError = 'That photo is bigger than the server allows in one upload (limit: ' . ini_get('post_max_size') . '). Please use a smaller photo.';
+    } elseif (!csrf_check()) {
         $uploadError = 'This page had been open a while, so we couldn\'t confirm the request. Please try saving again.';
     } else {
         $d = clean_data($type, $c['fields'], $_POST);
@@ -300,9 +286,9 @@ function form_value($editing, $k, $type) {
 <link rel="stylesheet" href="../assets/css/admin.css">
 </head>
 <body>
-<div class="top"><b>Strata &amp; Beam Admin — <?php echo htmlspecialchars($c['title']); ?></b> <a href="index.php">Dashboard</a></div>
+<div class="top"><b>Strata &amp; Beam Admin — <?php echo htmlspecialchars($c['title']); ?></b> <a href="dashboard.php">Dashboard</a></div>
 <div class="wrap">
-<a href="index.php" class="muted">&larr; Back to Dashboard</a>
+<a href="dashboard.php" class="muted">&larr; Back to Dashboard</a>
 <h1><?php echo htmlspecialchars($c['title']); ?></h1>
 <p class="muted" style="margin-top:-10px;margin-bottom:22px;"><?php echo htmlspecialchars($c['blurb']); ?></p>
 
@@ -351,7 +337,7 @@ function form_value($editing, $k, $type) {
     <?php if ($def['type'] === 'textarea'): ?>
     <textarea name="<?php echo $k; ?>" <?php echo empty($def['optional']) ? 'required' : ''; ?>><?php echo htmlspecialchars(form_value($editing, $k, $type)); ?></textarea>
     <?php else: ?>
-    <input name="<?php echo $k; ?>" value="<?php echo htmlspecialchars(form_value($editing, $k, $type)); ?>" <?php echo $def['type'] === 'number' ? 'type="number"' : ''; ?> <?php echo empty($def['optional']) ? 'required' : ''; ?>>
+    <input name="<?php echo $k; ?>" value="<?php echo htmlspecialchars(form_value($editing, $k, $type)); ?>" <?php echo $def['type'] === 'number' ? 'type="number"' : ($def['type'] === 'date' ? 'type="date"' : ''); ?> <?php echo empty($def['optional']) ? 'required' : ''; ?>>
     <?php endif; ?>
     <?php if (!empty($def['hint'])): ?><div class="hint"><?php echo htmlspecialchars($def['hint']); ?></div><?php endif; ?>
 <?php endif; ?>

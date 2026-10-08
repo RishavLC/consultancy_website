@@ -27,6 +27,8 @@ function db(): PDO {
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false,
     ]);
+    require_once __DIR__ . '/../includes/migrate.php';
+    ensure_schema($pdo);
     // Keep MySQL's clock in step with PHP's so enquiry times are correct in Nepal.
     try { $pdo->exec("SET time_zone = '" . (new DateTime('now', new DateTimeZone(APP_TIMEZONE)))->format('P') . "'"); } catch (Throwable $e) {}
     return $pdo;

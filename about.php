@@ -37,6 +37,15 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 </section>
 
+<section class="section section-tight" style="background:var(--sand-050);">
+    <div class="container">
+        <div class="grid-2" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;">
+            <div class="service-card"><div class="dim-line"><span>Our Mission</span></div><p><?php echo e($site['mission']); ?></p></div>
+            <div class="service-card"><div class="dim-line"><span>Our Vision</span></div><p><?php echo e($site['vision']); ?></p></div>
+        </div>
+    </div>
+</section>
+
 <section class="section alt blueprint-bg">
     <div class="container">
         <div class="grid-2">

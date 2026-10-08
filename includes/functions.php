@@ -157,3 +157,14 @@ function send_enquiry_mail(array $site, array $d): bool {
     if (!$ok) error_log('[consultancy] mail() returned false for enquiry notification');
     return $ok;
 }
+
+
+/** "March 2024" when a completion date exists, otherwise just the year. */
+function project_date_label(array $p): string {
+    if (!empty($p['completed_date']) && ($t = strtotime($p['completed_date']))) return date('F Y', $t);
+    return (string)($p['year'] ?? '');
+}
+/** Full date for the single-project page, e.g. "12 March 2024"; empty when no exact date is stored. */
+function project_full_date(array $p): string {
+    return (!empty($p['completed_date']) && ($t = strtotime($p['completed_date']))) ? date('j F Y', $t) : '';
+}
