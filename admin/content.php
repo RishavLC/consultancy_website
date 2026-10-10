@@ -194,16 +194,6 @@ function clean_data($type, $fieldDefs, $post) {
  * filename — or the existing filename if no new file was chosen, so
  * editing other fields never blanks out the photo.
  */
-function handle_image_upload_field(?string $existingFilename): ?string {
-    if (empty($_FILES['image']) || $_FILES['image']['error'] === UPLOAD_ERR_NO_FILE) {
-        return $existingFilename;
-    }
-    $existingFilename = $existingFilename ? basename($existingFilename) : null; // never trust a path from the browser
-    $filename = save_uploaded_image($_FILES['image']);   // validates type/size, throws RuntimeException on problems
-    delete_uploaded_image($existingFilename);            // replaced photo is removed
-    return $filename;
-}
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
     if (!csrf_check()) { http_response_code(400); exit('That request has expired. Go back, reload the page and try again.'); }
     $id = (int) $_POST['delete'];
@@ -229,7 +219,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['delete'])) {
 
         if (array_key_exists('image', $c['fields'])) {
             try {
-                $d['image'] = handle_image_upload_field($_POST['existing_image'] ?? null);
+                $existingImage = null;
+                if ($id) { $stImg = $pdo->prepare("SELECT image FROM `$table` WHERE id=?"); $stImg->execute([$id]); $existingImage = $stImg->fetchColumn() ?: null; }
+                $d['image'] = resolve_image_input($existingImage, 'image') ?? '';
             } catch (RuntimeException $ex) {
                 $uploadError = $ex->getMessage();
             }
@@ -284,7 +276,7 @@ function form_value($editing, $k, $type) {
 <meta name="robots" content="noindex, nofollow">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Karla:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/css/admin.css">
-</head>
+<script src="../assets/js/admin-image.js" defer></script></head>
 <body>
 <div class="top"><b>Strata &amp; Beam Admin — <?php echo htmlspecialchars($c['title']); ?></b> <a href="dashboard.php">Dashboard</a></div>
 <div class="wrap">
@@ -307,20 +299,7 @@ function form_value($editing, $k, $type) {
     <label style="margin-top:22px;"><input class="check" type="checkbox" name="<?php echo $k; ?>" value="1" <?php echo (!isset($editing) || !empty($editing[$k])) ? 'checked' : ''; ?>> <?php echo htmlspecialchars($def['label']); ?></label>
 
 <?php elseif ($def['type'] === 'image'): ?>
-    <label><?php echo htmlspecialchars($def['label']); ?></label>
-    <?php
-    $currentImage = $editing['image'] ?? '';
-    $imagePath = $currentImage ? __DIR__ . '/../assets/images/uploads/' . $currentImage : '';
-    ?>
-    <?php if ($currentImage && is_file($imagePath)): ?>
-    <div class="thumb-wrap">
-        <img src="../assets/images/uploads/<?php echo htmlspecialchars($currentImage); ?>" alt="">
-        <span class="hint">Current photo — choose a new file below to replace it.</span>
-    </div>
-    <?php endif; ?>
-    <input type="hidden" name="existing_image" value="<?php echo htmlspecialchars($currentImage); ?>">
-    <input type="file" name="image" accept="image/jpeg,image/png,image/webp,image/gif">
-    <div class="hint">JPG, PNG, WEBP or GIF, up to 5MB.<?php echo $currentImage ? '' : ' A placeholder photo is shown on the site until you upload one.'; ?></div>
+    <?php render_image_field($def['label'], $editing['image'] ?? '', 'image'); ?>
 
 <?php elseif ($def['type'] === 'select'): ?>
     <label><?php echo htmlspecialchars($def['label']); ?></label>
@@ -357,11 +336,9 @@ function form_value($editing, $k, $type) {
 <div class="item">
 <?php if (array_key_exists('image', $c['fields'])): ?>
     <?php
-    $thumbFile = $it['image'] ?? '';
-    $thumbPath = $thumbFile ? __DIR__ . '/../assets/images/uploads/' . $thumbFile : '';
-    $thumbSrc = ($thumbFile && is_file($thumbPath)) ? '../assets/images/uploads/' . htmlspecialchars($thumbFile) : 'https://picsum.photos/seed/' . urlencode($table . $it['id']) . '/120/90';
+    $thumbSrc = admin_image_src($it['image'] ?? '') ?? 'https://picsum.photos/seed/' . urlencode($table . $it['id']) . '/120/90';
     ?>
-    <img class="item-thumb" src="<?php echo $thumbSrc; ?>" alt="">
+    <img class="item-thumb" src="<?php echo htmlspecialchars($thumbSrc, ENT_QUOTES); ?>" alt="">
 <?php endif; ?>
 <b><?php echo htmlspecialchars((string)($it[$c['label'] ?? ''] ?? $it['title'] ?? $it['name'] ?? 'Item #' . $it['id'])); ?></b>
 <?php if (isset($it['is_active']) && !$it['is_active']): ?><span class="hint" style="color:var(--a-red);">(hidden from website)</span><?php endif; ?>

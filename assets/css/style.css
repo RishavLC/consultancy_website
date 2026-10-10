@@ -471,7 +471,13 @@ main{display:block}
 
 /* ---------- Admin-managed home banner ---------- */
 .hero-has-banner{
-  background:linear-gradient(90deg,rgba(43,29,20,.88) 0%,rgba(43,29,20,.62) 55%,rgba(43,29,20,.35) 100%), var(--hero-img) center/cover no-repeat;
+  /* The picture itself is set inline on the element (style="background-image:url(...)") so its path
+     is resolved from the page — a url() stored in a CSS variable would be resolved from /assets/css/. */
+  background-color:var(--brown-900); background-size:cover; background-position:center; background-repeat:no-repeat;
+}
+.hero-has-banner::before{
+  content:''; position:absolute; inset:0; z-index:1;
+  background:linear-gradient(90deg,rgba(43,29,20,.88) 0%,rgba(43,29,20,.62) 55%,rgba(43,29,20,.35) 100%);
 }
 .hero-has-banner .hero-inner{ grid-template-columns:minmax(0,760px); min-height:560px; align-items:center; }
 .hero-has-banner .hero-copy{ padding-block:70px; }

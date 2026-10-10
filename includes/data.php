@@ -1,6 +1,7 @@
 <?php
 /** Dynamic site data loaded from MySQL. Run install.php once after creating the database. */
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/functions.php';
 
 try {
     $pdo = db();
@@ -59,5 +60,5 @@ $stats = rows('SELECT value,label FROM site_stats WHERE is_active=1 ORDER BY sor
 $banner = null;
 try {
     $b = $pdo->query('SELECT * FROM banners WHERE is_active=1 ORDER BY id DESC LIMIT 1')->fetch();
-    if ($b && !empty($b['image']) && is_file(__DIR__ . '/../assets/images/uploads/' . basename($b['image']))) $banner = $b;
+    if ($b && !empty($b['image']) && (is_remote_image($b['image']) || is_file(__DIR__ . '/../assets/images/uploads/' . basename($b['image'])))) $banner = $b;
 } catch (Throwable $e) { log_error($e, 'banner load'); }

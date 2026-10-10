@@ -44,8 +44,17 @@ function e(string $s): string {
  * uploads a real photo through /admin — so the site never shows a
  * broken image icon.
  */
+/** True when an image value is a web link (http/https) rather than a file uploaded to this site. */
+function is_remote_image(?string $value): bool {
+    return is_string($value) && preg_match('#^https?://#i', $value) === 1;
+}
+
 function image_url(?string $filename, string $fallbackSeed, string $size = '600/440'): string {
+    if (is_remote_image($filename)) {
+        return $filename;                                   // image link pasted in the admin — used as-is
+    }
     if (!empty($filename)) {
+        $filename = basename($filename);
         $path = __DIR__ . '/../assets/images/uploads/' . $filename;
         if (is_file($path)) {
             return 'assets/images/uploads/' . rawurlencode($filename);

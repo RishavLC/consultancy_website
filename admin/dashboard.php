@@ -1,4 +1,4 @@
-<?php require_once __DIR__.'/auth.php'; require_admin(); $pdo=db();
+<?php require_once __DIR__.'/auth.php'; require_admin(); require_once __DIR__.'/upload_helper.php'; $pdo=db();
 $count=function(string $sql) use ($pdo): int { try { return (int)$pdo->query($sql)->fetchColumn(); } catch (Throwable $e) { log_error($e,'dashboard'); return 0; } };
 $cards=[
  'Work Logs'=>$count('SELECT COUNT(*) FROM projects'),
@@ -13,7 +13,7 @@ $new=$count("SELECT COUNT(*) FROM enquiries WHERE status='new'");
 $bannerStatus='Not set';
 try {
     $b=$pdo->query('SELECT * FROM banners ORDER BY id DESC LIMIT 1')->fetch();
-    if ($b) $bannerStatus = !$b['is_active'] ? 'Hidden' : (is_file(__DIR__.'/../assets/images/uploads/'.basename($b['image'])) ? 'Live' : 'Image missing');
+    if ($b) $bannerStatus = !$b['is_active'] ? 'Hidden' : (admin_image_src($b['image']) !== null ? 'Live' : 'Image missing');
 } catch (Throwable $e) { log_error($e,'dashboard banner'); }
 // Warn if the admin is still using the factory default password.
 $st=$pdo->prepare('SELECT password_hash FROM admins WHERE id=?'); $st->execute([(int)$_SESSION['admin_id']]); $h=(string)$st->fetchColumn();

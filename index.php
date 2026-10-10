@@ -4,8 +4,8 @@ $pageMeta  = 'Structural design, geotechnical investigation, site supervision an
 require_once __DIR__ . '/includes/header.php';
 ?>
 
-<?php $bannerImg = $banner ? 'assets/images/uploads/' . rawurlencode($banner['image']) : ''; ?>
-<section class="hero<?php echo $banner ? ' hero-has-banner' : ''; ?>"<?php if ($banner): ?> style="--hero-img:url('<?php echo e($bannerImg); ?>')"<?php endif; ?>>
+<?php $bannerImg = $banner ? image_url($banner['image'], 'home-banner', '1920/900') : ''; ?>
+<section class="hero<?php echo $banner ? ' hero-has-banner' : ''; ?>"<?php if ($banner): ?> style="background-image:url('<?php echo e($bannerImg); ?>')"<?php endif; ?>>
     <div class="container hero-inner">
         <div class="hero-copy">
             <span class="eyebrow">Structural &amp; Civil Engineering</span>

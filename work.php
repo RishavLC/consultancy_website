@@ -18,8 +18,9 @@ if (isset($_GET['id'])) {
     } else {
         $pageTitle = $activeProject['title'] . ' — ' . $site['name'];
         $pageMeta  = mb_substr($activeProject['summary'], 0, 160);
-        $ogImage   = base_url() . '/' . image_url($activeProject['image'], 'strata-beam-proj' . $activeProject['id'], '900/680');
-        if (strpos($ogImage, 'https://picsum') !== false) $ogImage = '';
+        $ogSrc     = image_url($activeProject['image'], 'strata-beam-proj' . $activeProject['id'], '900/680');
+        $ogImage   = is_remote_image($ogSrc) ? $ogSrc : base_url() . '/' . $ogSrc;
+        if (strpos($ogImage, 'picsum.photos') !== false) $ogImage = '';
     }
 }
 require_once __DIR__ . '/includes/header.php';

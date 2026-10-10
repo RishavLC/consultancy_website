@@ -39,7 +39,11 @@ Log in at `/admin/login.php` → **Dashboard** (`admin/dashboard.php`).
 The dashboard shows: total work logs, gallery images and contact messages, plus the current **banner status** (Live / Hidden / Not set).
 
 - **Show on website** unticked = hidden, not deleted. **Display Order**: lower numbers first.
-- Photos: JPG/PNG/WEBP/GIF up to 5 MB. Until uploaded, a placeholder photo appears.
+- **Every image field** (banner, work logs, gallery, team) shows a **live preview** as soon as you pick a file or paste a link, and tells you if the file is too big or the link doesn't work.
+- **Two ways to add a picture:** *Upload from computer* (saved on your server), or *Use an image link* — paste the web address of a picture and it is shown straight from that website without downloading anything. Tick **"Also download a copy"** to save the linked picture on your own server so it keeps working even if the other website removes it. In **Gallery** you can upload many files and/or paste many links (one per line) in one go.
+- Photos: JPG/PNG/WEBP/GIF. The maximum size shown beside each upload box is the real limit of your server (hosts often default to 2 MB; raise `upload_max_filesize` and `post_max_size` in php.ini if you need bigger photos). Pasted links have no size limit because nothing is uploaded.
+- To get a good image link: open the picture on its website, right-click it → *Copy image address*. It should end in .jpg, .png, .webp or .gif. Links to web *pages* (not the picture itself) will not work.
+- Until a picture is added, a placeholder photo appears.
 - Upgrading an older install: copy the new files over. The first page load adds the new `banners` table and the `completed_date` column automatically (no SQL needed). Existing content is not touched.
 
 ## 3b. File names compared with the project brief (PDF)
